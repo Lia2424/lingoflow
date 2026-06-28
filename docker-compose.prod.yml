@@ -1,0 +1,18 @@
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  backend:
+    build:
+      target: prod
+    environment:
+      DEBUG: "false"
+      ENVIRONMENT: production
+    volumes: []
+    restart: always
+
+  frontend:
+    build:
+      target: prod
+    volumes: []
+    restart: always
