@@ -6,8 +6,9 @@ import type { User } from '@/types'
 interface AuthState {
   user: User | null
   accessToken: string | null
+  refreshToken: string | null
   isAuthenticated: boolean
-  setAuth: (user: User, accessToken: string) => void
+  setAuth: (user: User, accessToken: string, refreshToken: string) => void
   clearAuth: () => void
 }
 
@@ -16,17 +17,20 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
-      setAuth: (user, accessToken) =>
-        set({ user, accessToken, isAuthenticated: true }),
+      setAuth: (user, accessToken, refreshToken) =>
+        set({ user, accessToken, refreshToken, isAuthenticated: true }),
       clearAuth: () =>
-        set({ user: null, accessToken: null, isAuthenticated: false }),
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
     }),
     {
       name: 'lingoflow-auth',
+      // Only persist tokens and user — never persist derived/function state
       partialize: (state) => ({
-        accessToken: state.accessToken,
         user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
       }),
     },
   ),
