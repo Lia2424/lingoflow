@@ -145,7 +145,7 @@ Tests use a dedicated `lingoflow_test` database. The `conftest.py` overrides the
 
 ## API Overview
 
-All routes are prefixed with `/api/v1/`.
+All routes are prefixed with `/api/`.
 
 | Method | Path | Description | Milestone |
 |---|---|---|---|
@@ -156,18 +156,18 @@ All routes are prefixed with `/api/v1/`.
 | GET | `/users/me` | My profile | 1 |
 | PATCH | `/users/me` | Update profile | 1 |
 | GET | `/users/me/stats` | Progress stats | 5 |
-| GET | `/content` | Discovery feed | 2 |
-| GET | `/content/{id}` | Content detail | 2 |
-| POST | `/content/{id}/interact` | Save / mark read / like | 2 |
-| GET | `/recommendations` | Personalized feed | 4 |
-| GET | `/vocabulary` | User word list | 4 |
-| POST | `/vocabulary` | Save a word | 4 |
-| GET | `/vocabulary/content/{id}` | Vocab extracted from content | 3 |
-| POST | `/ai/explain` | Explain a sentence | 3 |
-| POST | `/ai/difficulty` | Estimate CEFR level | 3 |
-| GET | `/ai/quiz/{content_id}` | Fetch/generate quiz | 5 |
-| GET | `/ai/immersion/plan` | Current immersion plan | 4 |
-| POST | `/ai/immersion/plan/generate` | Trigger plan generation | 4 |
+| GET | `/api/content` | Discovery feed | 2 |
+| GET | `/api/content/{id}` | Content detail | 2 |
+| POST | `/api/content/{id}/interact` | Save / mark read / like | 2 |
+| GET | `/api/recommendations` | Personalized feed | 4 |
+| GET | `/api/vocabulary` | User word list | 4 |
+| POST | `/api/vocabulary` | Save a word | 4 |
+| GET | `/api/vocabulary/content/{id}` | Vocab extracted from content | 3 |
+| POST | `/api/explain` | Explain a sentence | 3 |
+| POST | `/api/difficulty` | Estimate CEFR level | 3 |
+| GET | `/api/quiz/{content_id}` | Fetch/generate quiz | 5 |
+| GET | `/api/immersion/plan` | Current immersion plan | 4 |
+| POST | `/api/immersion/plan/generate` | Trigger plan generation | 4 |
 
 ---
 
