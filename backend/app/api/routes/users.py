@@ -4,12 +4,13 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
 from app.repositories.user import UserRepository
+from app.schemas.errors import PROTECTED_RESPONSES, RESPONSES_404
 from app.schemas.user import UpdateUserRequest, UserResponse
 
 router = APIRouter()
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, responses={**PROTECTED_RESPONSES, **RESPONSES_404})
 async def get_me(user_id: CurrentUserIdDep, db: DatabaseDep) -> UserResponse:
     user = await UserRepository(db).get_by_id(uuid.UUID(user_id))
     if not user:
@@ -17,7 +18,7 @@ async def get_me(user_id: CurrentUserIdDep, db: DatabaseDep) -> UserResponse:
     return UserResponse.model_validate(user)
 
 
-@router.patch("/me", response_model=UserResponse)
+@router.patch("/me", response_model=UserResponse, responses={**PROTECTED_RESPONSES, **RESPONSES_404})
 async def update_me(
     data: UpdateUserRequest,
     user_id: CurrentUserIdDep,
