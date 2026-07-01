@@ -1,6 +1,7 @@
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.db.base import Base
@@ -13,7 +14,9 @@ TEST_DATABASE_URL = (
     f"{_base}/lingoflow_test" if _db != "lingoflow_test" else settings.DATABASE_URL
 )
 
-_test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+# NullPool ensures each session gets its own connection — prevents the
+# "another operation is in progress" asyncpg error when tests run concurrently.
+_test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, poolclass=NullPool)
 _TestSession = async_sessionmaker(
     _test_engine, class_=AsyncSession, expire_on_commit=False
 )
