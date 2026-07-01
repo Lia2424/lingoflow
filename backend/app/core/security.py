@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
@@ -23,13 +24,17 @@ def _encode(payload: dict[str, Any]) -> str:
 
 def create_access_token(subject: str) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return _encode({"sub": subject, "exp": expire, "type": "access"})
+    return _encode(
+        {"sub": subject, "exp": expire, "type": "access", "jti": str(uuid.uuid4())}
+    )
 
 
 def create_refresh_token(subject: str) -> str:
     """Refresh tokens are rotated on every use (sliding session)."""
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    return _encode({"sub": subject, "exp": expire, "type": "refresh"})
+    return _encode(
+        {"sub": subject, "exp": expire, "type": "refresh", "jti": str(uuid.uuid4())}
+    )
 
 
 def decode_token(token: str) -> dict[str, Any]:
