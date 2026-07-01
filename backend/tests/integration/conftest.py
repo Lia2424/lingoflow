@@ -1,5 +1,6 @@
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -29,6 +30,16 @@ async def setup_test_db() -> None:
     yield
     async with _test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def truncate_tables() -> None:
+    """Wipe all rows between tests so each test starts with a clean database."""
+    yield
+    async with _test_engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            stmt = f"TRUNCATE TABLE {table.name} RESTART IDENTITY CASCADE"
+            await conn.execute(text(stmt))
 
 
 @pytest_asyncio.fixture
