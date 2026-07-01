@@ -39,7 +39,7 @@ async def login(data: LoginRequest, db: DatabaseDep) -> TokenResponse:
 )
 async def refresh_token(
     refresh_token: str = Body(..., embed=True),
-    db: DatabaseDep = ...,
+    db: DatabaseDep = ...,  # type: ignore[assignment]
 ) -> TokenResponse:
     return await _service(db).refresh(refresh_token)
 

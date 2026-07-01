@@ -25,7 +25,8 @@ class AuthService:
                 detail="An account with this email already exists",
             )
 
-        user = await self._repo.create(data, hashed_password=hash_password(data.password))
+        hashed = hash_password(data.password)
+        user = await self._repo.create(data, hashed_password=hashed)
 
         return TokenResponse(
             access_token=create_access_token(str(user.id)),
@@ -65,7 +66,7 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired refresh token",
-            )
+            ) from None
 
         user = await self._repo.get_by_id_str(user_id)
         if not user or not user.is_active:

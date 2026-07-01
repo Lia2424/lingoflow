@@ -4,13 +4,16 @@ Unit tests for UserRepository.
 Uses an in-memory SQLite database so no running Postgres is required.
 SQLAlchemy translates the PostgreSQL UUID type to VARCHAR for SQLite automatically.
 """
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
-from app.models import user as _user_module  # noqa: F401 — registers User with Base.metadata
+from app.models import (
+    user as _user_module,  # noqa: F401 — registers User with Base.metadata
+)
 from app.repositories.user import UserRepository
 from app.schemas.auth import RegisterRequest
 
@@ -35,8 +38,10 @@ async def db_session() -> AsyncSession:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with Session() as session:
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
+    async with session_factory() as session:
         yield session
 
     async with engine.begin() as conn:

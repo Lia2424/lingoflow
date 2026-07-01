@@ -1,4 +1,5 @@
 """Unit tests for JWT and password utilities — no DB required."""
+
 import pytest
 from jose import JWTError
 

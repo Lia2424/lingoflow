@@ -2,6 +2,7 @@
 Integration tests for /api/auth/* endpoints.
 Requires a running Postgres instance (use: pytest tests/integration/).
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -43,7 +44,10 @@ async def test_login_success(client: AsyncClient) -> None:
 
     response = await client.post(
         "/api/auth/login",
-        json={"email": REGISTER_PAYLOAD["email"], "password": REGISTER_PAYLOAD["password"]},
+        json={
+            "email": REGISTER_PAYLOAD["email"],
+            "password": REGISTER_PAYLOAD["password"],
+        },
     )
 
     assert response.status_code == 200

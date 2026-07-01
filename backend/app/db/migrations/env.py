@@ -11,6 +11,7 @@ from app.db.base import Base
 
 # Import all models here so Alembic autogenerate can discover them.
 from app.models.user import User  # noqa: F401
+
 # from app.models.content import ContentItem, ContentSource  # noqa: F401
 # from app.models.vocabulary import VocabularyEntry  # noqa: F401
 

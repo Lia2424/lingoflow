@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
@@ -10,7 +12,9 @@ router = APIRouter()
 
 
 @router.post("/explain")
-async def explain_sentence(user_id: CurrentUserIdDep, db: DatabaseDep) -> dict:
+async def explain_sentence(
+    user_id: CurrentUserIdDep, db: DatabaseDep
+) -> dict[str, Any]:
     """
     Explain a sentence in the context of its source content item.
     Returns a plain-language breakdown + grammar notes in the user's
@@ -20,7 +24,7 @@ async def explain_sentence(user_id: CurrentUserIdDep, db: DatabaseDep) -> dict:
 
 
 @router.post("/difficulty")
-async def estimate_difficulty(user_id: CurrentUserIdDep) -> dict:
+async def estimate_difficulty(user_id: CurrentUserIdDep) -> dict[str, Any]:
     """
     Estimate the CEFR level of a provided text snippet.
     Result is returned as a structured JSON object with level + confidence.
@@ -33,7 +37,7 @@ async def get_or_generate_quiz(
     content_id: str,
     user_id: CurrentUserIdDep,
     db: DatabaseDep,
-) -> dict:
+) -> dict[str, Any]:
     """
     Fetch a previously generated quiz, or generate and persist a new one.
     Quiz questions are stored in the quizzes table as JSONB.
@@ -42,12 +46,16 @@ async def get_or_generate_quiz(
 
 
 @router.get("/immersion/plan")
-async def get_immersion_plan(user_id: CurrentUserIdDep, db: DatabaseDep) -> dict:
+async def get_immersion_plan(
+    user_id: CurrentUserIdDep, db: DatabaseDep
+) -> dict[str, Any]:
     """Return the user's current AI-generated immersion plan."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
 @router.post("/immersion/plan/generate", status_code=status.HTTP_202_ACCEPTED)
-async def generate_immersion_plan(user_id: CurrentUserIdDep, db: DatabaseDep) -> dict:
+async def generate_immersion_plan(
+    user_id: CurrentUserIdDep, db: DatabaseDep
+) -> dict[str, Any]:
     """Trigger a new immersion plan generation based on current profile."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)

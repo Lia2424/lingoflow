@@ -17,16 +17,14 @@ class UserRepository:
         return result.scalar_one_or_none()
 
     async def get_by_id_str(self, user_id: str) -> User | None:
-        """Convenience method for looking up by the string form of a UUID (e.g. from a JWT sub claim)."""
+        """Look up by the string form of a UUID (e.g. from a JWT sub claim)."""
         try:
             return await self.get_by_id(uuid.UUID(user_id))
         except ValueError:
             return None
 
     async def get_by_email(self, email: str) -> User | None:
-        result = await self._db.execute(
-            select(User).where(User.email == email.lower())
-        )
+        result = await self._db.execute(select(User).where(User.email == email.lower()))
         return result.scalar_one_or_none()
 
     async def create(self, data: RegisterRequest, hashed_password: str) -> User:

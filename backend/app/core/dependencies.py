@@ -25,7 +25,7 @@ async def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired credentials",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None
 
 
 # Typed dependency aliases — import these in route files for DRY signatures.

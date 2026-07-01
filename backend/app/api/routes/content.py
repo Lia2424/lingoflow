@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 
@@ -19,7 +19,7 @@ async def list_content(
     q: str | None = None,
     cursor: str | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
-) -> dict:
+) -> dict[str, Any]:
     """
     Discovery feed. Supports CEFR filter, content type, full-text search,
     and cursor-based pagination (stable under concurrent inserts).
@@ -32,12 +32,12 @@ async def get_content(
     content_id: str,
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
-) -> dict:
+) -> dict[str, Any]:
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_content(db: DatabaseDep, user_id: CurrentUserIdDep) -> dict:
+async def create_content(db: DatabaseDep, user_id: CurrentUserIdDep) -> dict[str, Any]:
     """Admin-only: add a new content item."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
@@ -47,7 +47,7 @@ async def update_content(
     content_id: str,
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
-) -> dict:
+) -> dict[str, Any]:
     """Admin-only: update content metadata."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 

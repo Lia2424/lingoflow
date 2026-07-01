@@ -1,7 +1,7 @@
 import enum
 
 
-class CEFRLevel(str, enum.Enum):
+class CEFRLevel(enum.StrEnum):
     A1 = "A1"
     A2 = "A2"
     B1 = "B1"
@@ -10,7 +10,7 @@ class CEFRLevel(str, enum.Enum):
     C2 = "C2"
 
 
-class ContentType(str, enum.Enum):
+class ContentType(enum.StrEnum):
     ARTICLE = "article"
     PODCAST = "podcast"
     VIDEO = "video"
@@ -18,13 +18,13 @@ class ContentType(str, enum.Enum):
     TV_SHOW = "tv_show"
 
 
-class VocabularyStatus(str, enum.Enum):
+class VocabularyStatus(enum.StrEnum):
     NEW = "new"
     LEARNING = "learning"
     KNOWN = "known"
 
 
-class InteractionStatus(str, enum.Enum):
+class InteractionStatus(enum.StrEnum):
     SAVED = "saved"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
