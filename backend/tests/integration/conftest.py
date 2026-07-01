@@ -7,7 +7,11 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 
-TEST_DATABASE_URL = settings.DATABASE_URL.replace("/lingoflow", "/lingoflow_test")
+# Replace only the database name (last path segment), not the username.
+_base, _db = settings.DATABASE_URL.rsplit("/", 1)
+TEST_DATABASE_URL = (
+    f"{_base}/lingoflow_test" if _db != "lingoflow_test" else settings.DATABASE_URL
+)
 
 _test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 _TestSession = async_sessionmaker(

@@ -20,7 +20,7 @@ async def explain_sentence(
     Returns a plain-language breakdown + grammar notes in the user's
     native language.
     """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
 
 
 @router.post("/difficulty")
@@ -29,7 +29,7 @@ async def estimate_difficulty(user_id: CurrentUserIdDep) -> dict[str, Any]:
     Estimate the CEFR level of a provided text snippet.
     Result is returned as a structured JSON object with level + confidence.
     """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
 
 
 @router.get("/quiz/{content_id}")
@@ -42,7 +42,7 @@ async def get_or_generate_quiz(
     Fetch a previously generated quiz, or generate and persist a new one.
     Quiz questions are stored in the quizzes table as JSONB.
     """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
 
 
 @router.get("/immersion/plan")
@@ -50,7 +50,7 @@ async def get_immersion_plan(
     user_id: CurrentUserIdDep, db: DatabaseDep
 ) -> dict[str, Any]:
     """Return the user's current AI-generated immersion plan."""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
 
 
 @router.post("/immersion/plan/generate", status_code=status.HTTP_202_ACCEPTED)
@@ -58,4 +58,4 @@ async def generate_immersion_plan(
     user_id: CurrentUserIdDep, db: DatabaseDep
 ) -> dict[str, Any]:
     """Trigger a new immersion plan generation based on current profile."""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover

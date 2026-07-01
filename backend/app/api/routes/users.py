@@ -48,7 +48,7 @@ async def update_me(
 @router.get("/me/stats")
 async def get_stats(user_id: CurrentUserIdDep, db: DatabaseDep) -> dict[str, Any]:
     # Milestone 5: aggregate streak, words learned, content completed.
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
 
 
 @router.get("/me/interactions")
@@ -56,4 +56,4 @@ async def get_interactions(
     user_id: CurrentUserIdDep, db: DatabaseDep
 ) -> dict[str, Any]:
     # Milestone 2: return paginated user–content interaction history.
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover

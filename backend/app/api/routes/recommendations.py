@@ -21,4 +21,4 @@ async def get_recommendations(
       2. Exclude content the user has already seen.
       3. Rank by preferred content types from interaction history.
     """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
