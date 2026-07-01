@@ -1,22 +1,12 @@
 import type { RouteObject } from 'react-router-dom'
 
-const Placeholder = ({ label }: { label: string }) => (
-  <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
-    {label} — coming soon
-  </div>
-)
+import Placeholder from '@/components/ui/Placeholder'
+import LoginPage from '@/features/auth/LoginPage'
+import RegisterPage from '@/features/auth/RegisterPage'
 
 export const authRoutes: RouteObject[] = [
-  {
-    path: '/login',
-    element: <Placeholder label="Login" />,
-  },
-  {
-    path: '/register',
-    element: <Placeholder label="Register" />,
-  },
-  {
-    path: '/onboarding',
-    element: <Placeholder label="Onboarding" />,
-  },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/register', element: <RegisterPage /> },
+  { path: '/onboarding', element: <Placeholder label="Onboarding" /> },
+  { path: '/forgot-password', element: <Placeholder label="Forgot password — coming in Milestone 6" /> },
 ]

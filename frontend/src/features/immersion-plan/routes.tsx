@@ -1,14 +1,7 @@
 import type { RouteObject } from 'react-router-dom'
 
-const Placeholder = () => (
-  <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
-    Immersion Plan — coming soon
-  </div>
-)
+import Placeholder from '@/components/ui/Placeholder'
 
 export const immersionPlanRoutes: RouteObject[] = [
-  {
-    path: '/plan',
-    element: <Placeholder />,
-  },
+  { path: '/plan', element: <Placeholder label="Immersion Plan" /> },
 ]
