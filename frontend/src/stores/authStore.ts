@@ -26,12 +26,18 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'lingoflow-auth',
-      // Only persist tokens and user — never persist derived/function state
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
       }),
+      // After rehydration from localStorage, derive isAuthenticated from the token.
+      // This ensures a page refresh doesn't log the user out.
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isAuthenticated = state.accessToken !== null
+        }
+      },
     },
   ),
 )
