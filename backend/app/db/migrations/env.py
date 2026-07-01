@@ -10,8 +10,7 @@ from app.core.config import settings
 from app.db.base import Base
 
 # Import all models here so Alembic autogenerate can discover them.
-# Uncomment each model as it is created in Milestone 2+.
-# from app.models.user import User  # noqa: F401
+from app.models.user import User  # noqa: F401
 # from app.models.content import ContentItem, ContentSource  # noqa: F401
 # from app.models.vocabulary import VocabularyEntry  # noqa: F401
 
