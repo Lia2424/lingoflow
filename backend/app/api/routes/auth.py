@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, Request, status
 
 from app.core.dependencies import DatabaseDep
+from app.core.limiter import limiter
 from app.repositories.user import UserRepository
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.errors import RESPONSES_401, RESPONSES_409, RESPONSES_422
@@ -19,7 +20,10 @@ def _service(db: DatabaseDep) -> AuthService:
     status_code=status.HTTP_201_CREATED,
     responses={**RESPONSES_409, **RESPONSES_422},
 )
-async def register(data: RegisterRequest, db: DatabaseDep) -> TokenResponse:
+@limiter.limit("5/minute")
+async def register(
+    request: Request, data: RegisterRequest, db: DatabaseDep
+) -> TokenResponse:
     return await _service(db).register(data)
 
 
@@ -28,7 +32,10 @@ async def register(data: RegisterRequest, db: DatabaseDep) -> TokenResponse:
     response_model=TokenResponse,
     responses={**RESPONSES_401, **RESPONSES_422},
 )
-async def login(data: LoginRequest, db: DatabaseDep) -> TokenResponse:
+@limiter.limit("10/minute")
+async def login(
+    request: Request, data: LoginRequest, db: DatabaseDep
+) -> TokenResponse:
     return await _service(db).login(data)
 
 
@@ -37,9 +44,11 @@ async def login(data: LoginRequest, db: DatabaseDep) -> TokenResponse:
     response_model=TokenResponse,
     responses={**RESPONSES_401, **RESPONSES_422},
 )
+@limiter.limit("20/minute")
 async def refresh_token(
+    request: Request,
+    db: DatabaseDep,
     refresh_token: str = Body(..., embed=True),
-    db: DatabaseDep = ...,  # type: ignore[assignment]
 ) -> TokenResponse:
     return await _service(db).refresh(refresh_token)
 

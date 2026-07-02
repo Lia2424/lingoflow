@@ -13,6 +13,11 @@ from app.repositories.user import UserRepository
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserResponse
 
+# Pre-computed hash used when the requested email doesn't exist.
+# Running verify_password against this normalises response time and prevents
+# timing-based email enumeration (bcrypt takes ~100ms; skipping it leaks ~99ms).
+_DUMMY_HASH = hash_password("dummy-password-for-timing-safety")
+
 
 class AuthService:
     def __init__(self, repo: UserRepository) -> None:
@@ -46,8 +51,13 @@ class AuthService:
     async def login(self, data: LoginRequest) -> TokenResponse:
         user = await self._repo.get_by_email(data.email)
 
-        if not user or not verify_password(data.password, user.hashed_password):
-            # Intentionally vague — don't reveal whether the email exists
+        # Always call verify_password to keep response time constant.
+        # Short-circuiting on a missing user would leak ~100ms and allow
+        # attackers to enumerate valid emails via timing.
+        candidate_hash = user.hashed_password if user else _DUMMY_HASH
+        password_ok = verify_password(data.password, candidate_hash)
+
+        if not user or not password_ok:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password",
