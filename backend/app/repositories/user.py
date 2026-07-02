@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -36,7 +37,11 @@ class UserRepository:
             target_language=data.target_language,
         )
         self._db.add(user)
-        await self._db.commit()
+        try:
+            await self._db.commit()
+        except IntegrityError:
+            await self._db.rollback()
+            raise
         await self._db.refresh(user)
         return user
 

@@ -1,9 +1,9 @@
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
 import bcrypt
-from jose import jwt
+import jwt
 
 from app.core.config import settings
 
@@ -19,7 +19,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def _encode(payload: dict[str, Any]) -> str:
-    return cast(str, jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM))
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_access_token(subject: str) -> str:
@@ -38,8 +38,5 @@ def create_refresh_token(subject: str) -> str:
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    """Raises jose.JWTError on invalid or expired tokens."""
-    return cast(
-        dict[str, Any],
-        jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM]),
-    )
+    """Raises jwt.PyJWTError on invalid or expired tokens."""
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])

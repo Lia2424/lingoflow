@@ -1,5 +1,6 @@
+import jwt
 from fastapi import HTTPException, status
-from jose import JWTError
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import (
     create_access_token,
@@ -26,7 +27,15 @@ class AuthService:
             )
 
         hashed = hash_password(data.password)
-        user = await self._repo.create(data, hashed_password=hashed)
+        try:
+            user = await self._repo.create(data, hashed_password=hashed)
+        except IntegrityError:
+            # Two concurrent registrations with the same email — the DB
+            # unique constraint caught the race the application check missed.
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An account with this email already exists",
+            ) from None
 
         return TokenResponse(
             access_token=create_access_token(str(user.id)),
@@ -62,7 +71,7 @@ class AuthService:
             if payload.get("type") != "refresh":
                 raise ValueError("Not a refresh token")
             user_id: str = payload["sub"]
-        except (JWTError, ValueError, KeyError):
+        except (jwt.PyJWTError, ValueError, KeyError):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired refresh token",
@@ -84,6 +93,14 @@ class AuthService:
         )
 
     async def logout(self, refresh_token: str) -> None:
-        # Milestone 6: decode the token and add its jti to a Redis blocklist.
-        # For now, logout is handled client-side by discarding the token.
-        pass
+        # Validate the token so logout can't be called with garbage input.
+        # Milestone 6: add payload["jti"] to a Redis blocklist for true revocation.
+        try:
+            payload = decode_token(refresh_token)
+            if payload.get("type") != "refresh":
+                raise ValueError("Not a refresh token")
+        except (jwt.PyJWTError, ValueError, KeyError):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired refresh token",
+            ) from None

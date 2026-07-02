@@ -1,7 +1,7 @@
 """Unit tests for JWT and password utilities — no DB required."""
 
+import jwt
 import pytest
-from jose import JWTError
 
 from app.core.security import (
     create_access_token,
@@ -33,5 +33,27 @@ def test_refresh_token_type() -> None:
 
 def test_tampered_token_raises() -> None:
     token = create_access_token("user-123")
-    with pytest.raises(JWTError):
+    with pytest.raises(jwt.PyJWTError):
         decode_token(token + "tampered")
+
+
+def test_jti_unique_across_tokens() -> None:
+    t1 = create_access_token("user-123")
+    t2 = create_access_token("user-123")
+    assert decode_token(t1)["jti"] != decode_token(t2)["jti"]
+
+
+def test_password_over_72_bytes_rejected() -> None:
+    from pydantic import ValidationError
+
+    from app.schemas.auth import RegisterRequest
+
+    long_password = "a" * 73
+    with pytest.raises(ValidationError, match="72 bytes"):
+        RegisterRequest(
+            email="a@b.com",
+            username="testuser",
+            password=long_password,
+            native_language="en",
+            target_language="es",
+        )

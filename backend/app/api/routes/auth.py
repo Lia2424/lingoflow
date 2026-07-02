@@ -45,5 +45,8 @@ async def refresh_token(
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(refresh_token: str = Body(..., embed=True)) -> None:
-    pass
+async def logout(
+    db: DatabaseDep,
+    refresh_token: str = Body(..., embed=True),
+) -> None:
+    await _service(db).logout(refresh_token)

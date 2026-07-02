@@ -1,8 +1,8 @@
 from typing import Annotated
 
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
@@ -20,7 +20,7 @@ async def get_current_user_id(
         if payload.get("type") != "access":
             raise ValueError("Not an access token")
         return str(payload["sub"])
-    except (JWTError, ValueError, KeyError):
+    except (jwt.PyJWTError, ValueError, KeyError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired credentials",
