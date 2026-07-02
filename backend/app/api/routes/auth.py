@@ -33,9 +33,7 @@ async def register(
     responses={**RESPONSES_401, **RESPONSES_422},
 )
 @limiter.limit("10/minute")
-async def login(
-    request: Request, data: LoginRequest, db: DatabaseDep
-) -> TokenResponse:
+async def login(request: Request, data: LoginRequest, db: DatabaseDep) -> TokenResponse:
     return await _service(db).login(data)
 
 
