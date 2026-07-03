@@ -1,22 +1,21 @@
-from datetime import datetime, timedelta, timezone
+import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from jose import jwt
-from passlib.context import CryptContext
+import bcrypt
+import jwt
 
 from app.core.config import settings
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
 
 
 def hash_password(password: str) -> str:
-    return _pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def _encode(payload: dict[str, Any]) -> str:
@@ -24,20 +23,20 @@ def _encode(payload: dict[str, Any]) -> str:
 
 
 def create_access_token(subject: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return _encode(
+        {"sub": subject, "exp": expire, "type": "access", "jti": str(uuid.uuid4())}
     )
-    return _encode({"sub": subject, "exp": expire, "type": "access"})
 
 
 def create_refresh_token(subject: str) -> str:
     """Refresh tokens are rotated on every use (sliding session)."""
-    expire = datetime.now(timezone.utc) + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    return _encode(
+        {"sub": subject, "exp": expire, "type": "refresh", "jti": str(uuid.uuid4())}
     )
-    return _encode({"sub": subject, "exp": expire, "type": "refresh"})
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    """Raises jose.JWTError on invalid or expired tokens."""
+    """Raises jwt.PyJWTError on invalid or expired tokens."""
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
