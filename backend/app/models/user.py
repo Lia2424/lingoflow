@@ -19,6 +19,8 @@ class User(UUIDMixin, TimestampMixin, Base):
     native_language: Mapped[str] = mapped_column(String(10), nullable=False)
     target_language: Mapped[str] = mapped_column(String(10), nullable=False)
     cefr_level: Mapped[CEFRLevel] = mapped_column(
-        SAEnum(CEFRLevel, name="cefrlevel"), nullable=False, default=CEFRLevel.A1
+        SAEnum(CEFRLevel, name="cefrlevel", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+        default=CEFRLevel.A1,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

@@ -18,7 +18,12 @@ class UserContentInteraction(UUIDMixin, TimestampMixin, Base):
         ForeignKey("content.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status: Mapped[InteractionStatus] = mapped_column(
-        SAEnum(InteractionStatus, name="interactionstatus"), nullable=False
+        SAEnum(
+            InteractionStatus,
+            name="interactionstatus",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
     )
     # 1–5 star rating; null means not yet rated
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)

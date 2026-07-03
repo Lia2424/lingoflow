@@ -16,11 +16,13 @@ class Content(UUIDMixin, TimestampMixin, Base):
         String(2048), unique=True, nullable=False, index=True
     )
     source_type: Mapped[SourceType] = mapped_column(
-        SAEnum(SourceType, name="sourcetype"), nullable=False
+        SAEnum(SourceType, name="sourcetype", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
     )
     language: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
     cefr_level: Mapped[CEFRLevel] = mapped_column(
-        SAEnum(CEFRLevel, name="cefrlevel"), nullable=False
+        SAEnum(CEFRLevel, name="cefrlevel", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
     )
     thumbnail_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
