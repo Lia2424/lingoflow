@@ -31,8 +31,13 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
       }),
-      // After rehydration from localStorage, derive isAuthenticated from the token.
-      // This ensures a page refresh doesn't log the user out.
+      // After rehydration, derive isAuthenticated from token presence — not
+      // token validity. An expired or malformed token stored in localStorage
+      // will still set isAuthenticated=true here, and the user will appear
+      // logged in until the first API call returns 401 and the axios interceptor
+      // calls clearAuth(). This is an intentional tradeoff: validating the JWT
+      // signature client-side would require shipping the secret key to the browser.
+      // Milestone 6 (httpOnly cookies + /auth/me check on load) eliminates this gap.
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.isAuthenticated = state.accessToken !== null

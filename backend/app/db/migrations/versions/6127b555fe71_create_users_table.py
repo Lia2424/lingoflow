@@ -26,7 +26,11 @@ def upgrade() -> None:
         sa.Column("hashed_password", sa.String(length=255), nullable=False),
         sa.Column("native_language", sa.String(length=10), nullable=False),
         sa.Column("target_language", sa.String(length=10), nullable=False),
-        sa.Column("cefr_level", sa.String(length=2), nullable=False),
+        sa.Column(
+            "cefr_level",
+            sa.Enum("A1", "A2", "B1", "B2", "C1", "C2", name="cefrlevel"),
+            nullable=False,
+        ),
         sa.Column("is_active", sa.Boolean(), nullable=False),
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
@@ -43,4 +47,5 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_users_username"), table_name="users")
     op.drop_index(op.f("ix_users_email"), table_name="users")
     op.drop_table("users")
+    sa.Enum(name="cefrlevel").drop(op.get_bind(), checkfirst=True)
     # ### end Alembic commands ###

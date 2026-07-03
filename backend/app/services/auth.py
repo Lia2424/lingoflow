@@ -64,9 +64,11 @@ class AuthService:
             )
 
         if not user.is_active:
+            # Use 401 rather than 403 to avoid confirming the email exists
+            # (a 403 with correct credentials reveals a valid account).
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Account is deactivated",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
             )
 
         return TokenResponse(

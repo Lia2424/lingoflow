@@ -5,9 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+
+# Rate limiting fires in tests because all requests share the same loopback IP.
+# Disable it for the whole integration test session.
+limiter._enabled = False  # type: ignore[attr-defined]
 
 # Replace only the database name (last path segment), not the username.
 _base, _db = settings.DATABASE_URL.rsplit("/", 1)
