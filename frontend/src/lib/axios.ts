@@ -1,5 +1,7 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 
+import { useAuthStore } from '@/stores/authStore'
+
 const apiClient = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
@@ -9,10 +11,10 @@ const apiClient = axios.create({
 // ── Request interceptor — attach access token ─────────────────────────────
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Read directly from the store's persisted localStorage key to avoid
-  // a circular import between this module and authStore.
-  const raw = localStorage.getItem('lingoflow-auth')
-  const token = raw ? (JSON.parse(raw)?.state?.accessToken as string | null) : null
+  // useAuthStore.getState() works outside React components — Zustand stores
+  // are module-level singletons. There is no circular import: authStore does
+  // not import from this module.
+  const token = useAuthStore.getState().accessToken
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -33,6 +35,13 @@ function processQueue(error: unknown, token: string | null) {
   waitQueue = []
 }
 
+function redirectToLogin() {
+  useAuthStore.getState().clearAuth()
+  // replace() avoids adding the protected page to browser history so the
+  // back button doesn't return the user to a page they can no longer access.
+  window.location.replace('/login')
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -47,11 +56,7 @@ apiClient.interceptors.response.use(
     if (is401 && (isRefreshEndpoint || alreadyRetried)) {
       processQueue(error, null)
       isRefreshing = false
-
-      // Lazy import avoids circular dependency
-      const { useAuthStore } = await import('@/stores/authStore')
-      useAuthStore.getState().clearAuth()
-      window.location.href = '/login'
+      redirectToLogin()
       return Promise.reject(error)
     }
 
@@ -71,16 +76,13 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const raw = localStorage.getItem('lingoflow-auth')
-        const refreshToken = raw ? (JSON.parse(raw)?.state?.refreshToken as string | null) : null
-
+        const refreshToken = useAuthStore.getState().refreshToken
         if (!refreshToken) throw new Error('No refresh token')
 
         const { data } = await apiClient.post('/auth/refresh', { refresh_token: refreshToken })
         const newAccessToken: string = data.access_token
         const newRefreshToken: string = data.refresh_token
 
-        const { useAuthStore } = await import('@/stores/authStore')
         const { user } = useAuthStore.getState()
         if (user) useAuthStore.getState().setAuth(user, newAccessToken, newRefreshToken)
 
@@ -89,9 +91,7 @@ apiClient.interceptors.response.use(
         return apiClient(original)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        const { useAuthStore } = await import('@/stores/authStore')
-        useAuthStore.getState().clearAuth()
-        window.location.href = '/login'
+        redirectToLogin()
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

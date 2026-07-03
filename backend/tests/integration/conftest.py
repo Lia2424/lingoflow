@@ -12,7 +12,7 @@ from app.main import app
 
 # Rate limiting fires in tests because all requests share the same loopback IP.
 # Disable it for the whole integration test session.
-limiter._enabled = False  # type: ignore[attr-defined]
+limiter.enabled = False
 
 # Replace only the database name (last path segment), not the username.
 _base, _db = settings.DATABASE_URL.rsplit("/", 1)

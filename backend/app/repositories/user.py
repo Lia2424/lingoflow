@@ -45,9 +45,17 @@ class UserRepository:
         await self._db.refresh(user)
         return user
 
+    # Fields a user is allowed to change via PATCH /users/me.
+    # Explicit allowlist prevents newly added schema fields (e.g. is_active)
+    # from becoming user-settable by accident.
+    _UPDATABLE_FIELDS = frozenset(
+        {"username", "native_language", "target_language", "cefr_level"}
+    )
+
     async def update(self, user: User, data: UpdateUserRequest) -> User:
         for field, value in data.model_dump(exclude_unset=True).items():
-            setattr(user, field, value)
+            if field in self._UPDATABLE_FIELDS:
+                setattr(user, field, value)
         await self._db.commit()
         await self._db.refresh(user)
         return user
