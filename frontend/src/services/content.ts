@@ -1,19 +1,18 @@
 import apiClient from '@/lib/axios'
-import type { CEFRLevel, ContentItem, ContentType, PaginatedResponse } from '@/types'
+import type { CEFRLevel, ContentItem, PagedResponse, SourceType } from '@/types'
 
 export interface ContentFilters {
   language?: string
-  cefr?: CEFRLevel
-  type?: ContentType
-  q?: string
-  cursor?: string
-  limit?: number
+  cefr_level?: CEFRLevel
+  source_type?: SourceType
+  page?: number
+  page_size?: number
 }
 
 export async function fetchContent(
   filters: ContentFilters = {},
-): Promise<PaginatedResponse<ContentItem>> {
-  const { data } = await apiClient.get<PaginatedResponse<ContentItem>>('/content', {
+): Promise<PagedResponse<ContentItem>> {
+  const { data } = await apiClient.get<PagedResponse<ContentItem>>('/content', {
     params: filters,
   })
   return data
@@ -26,7 +25,7 @@ export async function fetchContentById(id: string): Promise<ContentItem> {
 
 export async function interactWithContent(
   contentId: string,
-  payload: { status: string; progress_percent?: number },
+  payload: { status: string; rating?: number | null },
 ): Promise<void> {
   await apiClient.post(`/content/${contentId}/interact`, payload)
 }
