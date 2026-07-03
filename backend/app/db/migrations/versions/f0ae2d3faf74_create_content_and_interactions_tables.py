@@ -24,7 +24,7 @@ def upgrade() -> None:
 
     # ── content table ────────────────────────────────────────────────────────
     # sourcetype and interactionstatus are new — SQLAlchemy creates them automatically.
-    # cefrlevel already exists from migration 1, so create_type=False avoids a duplicate.
+    # cefrlevel already exists from migration 1; create_type=False avoids a duplicate.
     op.create_table(
         "content",
         sa.Column("title", sa.String(length=500), nullable=False),
