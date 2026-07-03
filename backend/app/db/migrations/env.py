@@ -10,10 +10,9 @@ from app.core.config import settings
 from app.db.base import Base
 
 # Import all models here so Alembic autogenerate can discover them.
+from app.models.content import Content  # noqa: F401
 from app.models.user import User  # noqa: F401
-
-# from app.models.content import ContentItem, ContentSource  # noqa: F401
-# from app.models.vocabulary import VocabularyEntry  # noqa: F401
+from app.models.user_content_interaction import UserContentInteraction  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
