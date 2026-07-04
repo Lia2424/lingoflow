@@ -6,6 +6,7 @@ import { contentRoutes } from '@/features/content/routes'
 import { discoveryRoutes } from '@/features/discovery/routes'
 import { immersionPlanRoutes } from '@/features/immersion-plan/routes'
 import { quizRoutes } from '@/features/quiz/routes'
+import { settingsRoutes } from '@/features/settings/routes'
 import { vocabularyRoutes } from '@/features/vocabulary/routes'
 
 export const router = createBrowserRouter([
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       ...discoveryRoutes,
       ...contentRoutes,
       ...vocabularyRoutes,
+      ...settingsRoutes,
       ...immersionPlanRoutes,
       ...quizRoutes,
     ],
