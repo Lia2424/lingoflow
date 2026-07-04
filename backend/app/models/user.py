@@ -3,6 +3,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDMixin
+from app.models.enum_utils import enum_values
 from app.models.enums import CEFRLevel
 
 
@@ -19,7 +20,7 @@ class User(UUIDMixin, TimestampMixin, Base):
     native_language: Mapped[str] = mapped_column(String(10), nullable=False)
     target_language: Mapped[str] = mapped_column(String(10), nullable=False)
     cefr_level: Mapped[CEFRLevel] = mapped_column(
-        SAEnum(CEFRLevel, name="cefrlevel", values_callable=lambda e: [m.value for m in e]),
+        SAEnum(CEFRLevel, name="cefrlevel", values_callable=enum_values),
         nullable=False,
         default=CEFRLevel.A1,
     )

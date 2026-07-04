@@ -5,6 +5,7 @@ from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDMixin
+from app.models.enum_utils import enum_values
 from app.models.enums import InteractionStatus
 
 
@@ -19,9 +20,7 @@ class UserContentInteraction(UUIDMixin, TimestampMixin, Base):
     )
     status: Mapped[InteractionStatus] = mapped_column(
         SAEnum(
-            InteractionStatus,
-            name="interactionstatus",
-            values_callable=lambda e: [m.value for m in e],
+            InteractionStatus, name="interactionstatus", values_callable=enum_values
         ),
         nullable=False,
     )
