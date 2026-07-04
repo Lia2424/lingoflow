@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import Content
@@ -55,23 +56,38 @@ class ContentRepository:
         content_id: uuid.UUID,
         data: InteractRequest,
     ) -> None:
-        """Insert or update the interaction row for (user_id, content_id)."""
-        stmt = (
-            pg_insert(UserContentInteraction)
-            .values(
-                user_id=user_id,
-                content_id=content_id,
-                status=data.status,
-                rating=data.rating,
-            )
-            .on_conflict_do_update(
-                constraint="uq_user_content",
-                set_={
-                    "status": data.status,
-                    "rating": data.rating,
-                    "updated_at": func.now(),
-                },
-            )
+        """
+        Insert or update the interaction row for (user_id, content_id).
+
+        Omitting `rating` (leaving it None) preserves whatever rating was
+        previously stored, via COALESCE against the existing row — it does
+        NOT null out an existing rating. This matches InteractRequest's
+        documented contract. There is currently no way to explicitly clear
+        a rating once set; that would need a separate sentinel value.
+
+        Raises sqlalchemy.exc.IntegrityError if content_id no longer exists
+        (FK violation) — callers should catch this to return a 404 rather
+        than letting it bubble up as a 500.
+        """
+        insert_stmt = pg_insert(UserContentInteraction).values(
+            user_id=user_id,
+            content_id=content_id,
+            status=data.status,
+            rating=data.rating,
         )
-        await self._db.execute(stmt)
-        await self._db.commit()
+        stmt = insert_stmt.on_conflict_do_update(
+            constraint="uq_user_content",
+            set_={
+                "status": insert_stmt.excluded.status,
+                "rating": func.coalesce(
+                    insert_stmt.excluded.rating, UserContentInteraction.rating
+                ),
+                "updated_at": func.now(),
+            },
+        )
+        try:
+            await self._db.execute(stmt)
+            await self._db.commit()
+        except IntegrityError:
+            await self._db.rollback()
+            raise

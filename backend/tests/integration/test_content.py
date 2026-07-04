@@ -9,11 +9,14 @@ from datetime import UTC, datetime
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import Content
-from app.models.enums import CEFRLevel, SourceType
+from app.models.enums import CEFRLevel, InteractionStatus, SourceType
 from app.models.user_content_interaction import UserContentInteraction
+from app.repositories.content import ContentRepository
+from app.schemas.content import InteractRequest
 
 REGISTER_PAYLOAD = {
     "email": "content-test@lingoflow.com",
@@ -77,6 +80,21 @@ async def test_list_content_returns_200_with_paginated_shape(
     assert body["page"] == 1
     assert body["page_size"] == 20
     assert len(body["items"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_list_content_rejects_page_above_upper_bound(
+    client: AsyncClient,
+) -> None:
+    token = await _register_and_get_token(client)
+
+    response = await client.get(
+        "/api/content",
+        params={"page": 100_001},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -192,6 +210,58 @@ async def test_interact_upserts_on_repeated_call(
     assert len(interactions) == 1
     assert interactions[0].status == "completed"
     assert interactions[0].rating == 5
+
+
+@pytest.mark.asyncio
+async def test_interact_omitting_rating_preserves_existing_rating(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """Regression test: rating must not be wiped when a later call omits it."""
+    token = await _register_and_get_token(client)
+    content = await _create_content(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    await client.post(
+        f"/api/content/{content.id}/interact",
+        json={"status": "completed", "rating": 4},
+        headers=headers,
+    )
+    second = await client.post(
+        f"/api/content/{content.id}/interact",
+        json={"status": "in_progress"},
+        headers=headers,
+    )
+
+    assert second.status_code == 204
+    result = await db_session.execute(
+        select(UserContentInteraction).where(
+            UserContentInteraction.content_id == content.id
+        )
+    )
+    interaction = result.scalar_one()
+    assert interaction.status == "in_progress"
+    assert interaction.rating == 4
+
+
+@pytest.mark.asyncio
+async def test_upsert_interaction_raises_integrity_error_for_missing_content(
+    db_session: AsyncSession,
+) -> None:
+    """
+    Regression test for the TOCTOU race between the existence check in
+    ContentService.interact() and the upsert: if content_id doesn't exist
+    (e.g. deleted between the check and the write), the FK violation must
+    surface as IntegrityError so the service layer can translate it to a
+    404 instead of letting it bubble up as an unhandled 500.
+    """
+    repo = ContentRepository(db_session)
+
+    with pytest.raises(IntegrityError):
+        await repo.upsert_interaction(
+            user_id=uuid.uuid4(),
+            content_id=uuid.uuid4(),
+            data=InteractRequest(status=InteractionStatus.SAVED),
+        )
 
 
 @pytest.mark.asyncio

@@ -28,7 +28,7 @@ async def list_content(
     language: str | None = None,
     cefr_level: CEFRLevel | None = None,
     source_type: SourceType | None = None,
-    page: Annotated[int, Query(ge=1)] = 1,
+    page: Annotated[int, Query(ge=1, le=100_000)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ContentListResponse:
     return await _service(db).list(

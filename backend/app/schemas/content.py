@@ -31,5 +31,13 @@ class ContentListResponse(BaseModel):
 
 class InteractRequest(BaseModel):
     status: InteractionStatus
-    # 1–5 star rating; omit or set to null to leave rating unchanged
-    rating: int | None = Field(default=None, ge=1, le=5)
+    rating: int | None = Field(
+        default=None,
+        ge=1,
+        le=5,
+        description=(
+            "1-5 star rating. Omit (or send null) to leave any previously "
+            "recorded rating unchanged — this field is never used to clear "
+            "an existing rating, only to set one."
+        ),
+    )

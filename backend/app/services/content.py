@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 from app.models.enums import CEFRLevel, SourceType
 from app.repositories.content import ContentRepository
@@ -48,15 +49,23 @@ class ContentService:
         content_id: uuid.UUID,
         data: InteractRequest,
     ) -> None:
-        # Verify content exists before recording an interaction.
+        # Verify content exists before recording an interaction. This is a
+        # best-effort check — see the IntegrityError handling below for the
+        # race where content is deleted between this check and the upsert.
         content = await self._repo.get_by_id(content_id)
         if not content:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Content not found",
             )
-        await self._repo.upsert_interaction(
-            user_id=uuid.UUID(user_id),
-            content_id=content_id,
-            data=data,
-        )
+        try:
+            await self._repo.upsert_interaction(
+                user_id=uuid.UUID(user_id),
+                content_id=content_id,
+                data=data,
+            )
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Content not found",
+            ) from None

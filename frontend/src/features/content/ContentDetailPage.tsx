@@ -4,7 +4,8 @@ import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import type { InteractionStatus, SourceType } from '@/types'
+import { CEFR_COLORS, SOURCE_COLORS, SOURCE_LABELS } from '@/lib/contentDisplay'
+import type { InteractionStatus } from '@/types'
 import { fetchContentById, interactWithContent } from '@/services/content'
 
 import ContentDetailSkeleton from './ContentDetailSkeleton'
@@ -16,6 +17,7 @@ function getYouTubeId(url: string): string | null {
     /[?&]v=([^&]+)/,
     /youtu\.be\/([^?/]+)/,
     /\/embed\/([^?/]+)/,
+    /\/shorts\/([^?/]+)/,
   ]
   for (const p of patterns) {
     const m = url.match(p)
@@ -33,39 +35,12 @@ function formatDate(iso: string | null): string {
   })
 }
 
-const SOURCE_LABELS: Record<SourceType, string> = {
-  article: 'Article',
-  podcast: 'Podcast',
-  youtube: 'YouTube',
-  music: 'Music',
-  tv_show: 'TV Show',
-  other: 'Other',
-}
-
-const SOURCE_COLORS: Record<SourceType, string> = {
-  article: 'bg-blue-100 text-blue-700',
-  podcast: 'bg-purple-100 text-purple-700',
-  youtube: 'bg-red-100 text-red-700',
-  music: 'bg-green-100 text-green-700',
-  tv_show: 'bg-orange-100 text-orange-700',
-  other: 'bg-slate-100 text-slate-600',
-}
-
-const CEFR_COLORS: Record<string, string> = {
-  A1: 'bg-emerald-100 text-emerald-700',
-  A2: 'bg-emerald-100 text-emerald-700',
-  B1: 'bg-amber-100 text-amber-700',
-  B2: 'bg-amber-100 text-amber-700',
-  C1: 'bg-rose-100 text-rose-700',
-  C2: 'bg-rose-100 text-rose-700',
-}
-
 // ── Action bar ────────────────────────────────────────────────────────────────
 
 interface ActionBarProps {
   contentId: string
   currentStatus: InteractionStatus | null
-  onStatusChange: (s: InteractionStatus) => void
+  onStatusChange: (s: InteractionStatus | null) => void
 }
 
 function ActionBar({ contentId, currentStatus, onStatusChange }: ActionBarProps) {
@@ -75,15 +50,20 @@ function ActionBar({ contentId, currentStatus, onStatusChange }: ActionBarProps)
     mutationFn: (status: InteractionStatus) =>
       interactWithContent(contentId, { status }),
     onMutate: (status) => {
-      // Optimistic update — applied immediately
+      // Capture the pre-click status as mutation context — reading
+      // `currentStatus` inside onError instead would be stale, since by
+      // the time onError fires the prop has already been optimistically
+      // updated to the new value (TanStack Query always uses the latest
+      // render's callbacks), making a "revert to currentStatus" a no-op.
+      const previousStatus = currentStatus
       onStatusChange(status)
+      return { previousStatus }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content', contentId] })
     },
-    onError: (_err, _vars, _ctx) => {
-      // Revert optimistic update on failure
-      onStatusChange(currentStatus ?? 'saved')
+    onError: (_err, _vars, context) => {
+      onStatusChange(context?.previousStatus ?? null)
     },
   })
 
