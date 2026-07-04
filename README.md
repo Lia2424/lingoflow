@@ -36,11 +36,13 @@ Browser
 |---|---|
 | Feature-based frontend modules | Co-location makes features deletable; no file-type archaeology |
 | Repository pattern (backend) | Isolates all DB access; services are testable without SQLAlchemy |
-| Cursor-based pagination | Stable under concurrent inserts; offset pagination breaks on live feeds |
+| Page-based pagination | Simple to implement and debug; content catalog is append-only so page drift is acceptable |
 | JSONB for AI output | Quiz/plan schema evolves; avoids premature column design |
 | Async SQLAlchemy + asyncpg | FastAPI is fully async; blocking DB calls negate its benefits |
 | Redis cache on AI endpoints | Avoid redundant LLM calls; 1-hour TTL per content item |
 | Rotating refresh tokens | Sliding session with token rotation detects token theft |
+| `INSERT … ON CONFLICT DO UPDATE` | Atomic upsert for interactions; avoids a separate read-then-write and the TOCTOU race it creates |
+| `COALESCE` in upsert set-clause | Allows partial updates (status-only) without overwriting previously set fields like rating |
 
 ---
 
@@ -62,7 +64,7 @@ cp .env.example .env
 Edit `.env` and set at minimum:
 - `POSTGRES_PASSWORD` — any strong password
 - `SECRET_KEY` — generate with `openssl rand -hex 32`
-- `OPENAI_API_KEY` — required for AI features (Milestone 3+)
+- `OPENAI_API_KEY` — required for AI features (Milestone 4+)
 
 ### 2. Start the full stack
 
@@ -90,12 +92,22 @@ docker compose exec backend alembic upgrade head
 | Milestone | Scope | Status |
 |---|---|---|
 | 0 — Scaffolding | Architecture, folder structure, Docker, CI | ✅ Complete |
-| 1 — Auth | JWT auth, user onboarding, protected routes | Pending |
-| 2 — Content + Discovery | Feed, filters, infinite scroll, content detail | Pending |
-| 3 — AI Integration | CEFR scoring, vocabulary extraction, sentence explanation | Pending |
-| 4 — Personalization | Immersion plans, vocab tracking, recommendations | Pending |
-| 5 — Quizzes + Progress | AI quiz generation, stats dashboard | Pending |
-| 6 — Production | Rate limiting, structured logging, Sentry, Nginx | Pending |
+| 1 — Auth | JWT auth, user onboarding, protected routes | ✅ Complete |
+| 2 — Content + Discovery | Feed, filters, horizontal rows, content detail, interaction tracking | ✅ Complete |
+| 3 — Vocabulary & Flashcards | Word saving, SRS scheduling, flashcard review session | ✅ Complete |
+| 4 — App Shell & User Profile | Global nav bar, user avatar, logout, settings page | 🚧 In progress |
+| 5 — AI Integration | CEFR scoring, vocabulary extraction, sentence explanation | Pending |
+| 6 — Recommendations | Personalized feed, immersion plans | Pending |
+| 7 — Quizzes + Progress | AI quiz generation, stats dashboard | Pending |
+| 8 — Production | Structured logging, Sentry, Nginx, rate limiting hardening | Pending |
+
+### Seed sample data (Milestone 2+)
+
+```bash
+docker compose exec backend python scripts/seed_content.py
+```
+
+This loads 21 items covering all source types (article, podcast, YouTube, music, TV show), all CEFR levels, and multiple languages.
 
 ---
 
@@ -105,7 +117,7 @@ docker compose exec backend alembic upgrade head
 - [React 18](https://react.dev/) + [TypeScript 5](https://www.typescriptlang.org/)
 - [TanStack Query v5](https://tanstack.com/query) — server state, caching, infinite scroll
 - [Zustand](https://zustand-demo.pmnd.rs/) — lightweight client state
-- [Tailwind CSS v3](https://tailwindcss.com/) — utility-first styling
+- [Tailwind CSS v4](https://tailwindcss.com/) — utility-first styling
 - [React Router v6](https://reactrouter.com/)
 - [Vite v5](https://vitejs.dev/) — build tooling
 

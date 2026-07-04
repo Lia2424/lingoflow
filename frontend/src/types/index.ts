@@ -71,20 +71,29 @@ export interface ContentInteraction {
 
 // ── Vocabulary ────────────────────────────────────────────────────────────────
 
+/** 0 = unseen, 5 = mastered. Matches backend SRS level range. */
+export type SRSLevel = 0 | 1 | 2 | 3 | 4 | 5
+
 export interface VocabularyEntry {
   id: string
+  user_id: string
+  content_id: string | null
   word: string
   language: string
-  definition: string
-  part_of_speech: string
-  cefr_level: CEFRLevel
-  examples: string[]
+  definition: string | null
+  translation: string | null
+  notes: string | null
+  srs_level: SRSLevel
+  next_review_at: string | null
+  created_at: string
+  updated_at: string
 }
 
-export interface UserVocabularyEntry extends VocabularyEntry {
-  status: VocabularyStatus
-  review_count: number
-  next_review_at: string | null
+export interface VocabularyListResponse {
+  items: VocabularyEntry[]
+  total: number
+  page: number
+  page_size: number
 }
 
 // ── AI ────────────────────────────────────────────────────────────────────────

@@ -1,35 +1,81 @@
 import apiClient from '@/lib/axios'
-import type { PaginatedResponse, UserVocabularyEntry, VocabularyStatus } from '@/types'
+import type { SRSLevel, VocabularyEntry, VocabularyListResponse } from '@/types'
 
-export async function fetchUserVocabulary(): Promise<PaginatedResponse<UserVocabularyEntry>> {
-  const { data } = await apiClient.get<PaginatedResponse<UserVocabularyEntry>>('/vocabulary')
-  return data
+// ── Request shapes ────────────────────────────────────────────────────────────
+
+export interface VocabularyFilters {
+  language?: string
+  srs_level?: SRSLevel
+  page?: number
+  page_size?: number
 }
 
-export async function saveWord(vocabularyId: string): Promise<UserVocabularyEntry> {
-  const { data } = await apiClient.post<UserVocabularyEntry>('/vocabulary', {
-    vocabulary_id: vocabularyId,
+export interface CreateVocabularyPayload {
+  word: string
+  language: string
+  definition?: string | null
+  translation?: string | null
+  notes?: string | null
+  content_id?: string | null
+}
+
+export interface UpdateVocabularyPayload {
+  definition?: string | null
+  translation?: string | null
+  notes?: string | null
+}
+
+export interface ReviewPayload {
+  correct: boolean
+}
+
+// ── API calls ─────────────────────────────────────────────────────────────────
+
+export async function fetchVocabulary(
+  filters: VocabularyFilters = {},
+): Promise<VocabularyListResponse> {
+  const { data } = await apiClient.get<VocabularyListResponse>('/vocabulary', {
+    params: filters,
   })
   return data
 }
 
-export async function removeWord(id: string): Promise<void> {
-  await apiClient.delete(`/vocabulary/${id}`)
-}
-
-export async function fetchVocabularyForContent(
-  contentId: string,
-): Promise<UserVocabularyEntry[]> {
-  const { data } = await apiClient.get<UserVocabularyEntry[]>(
-    `/vocabulary/content/${contentId}`,
-  )
+export async function fetchVocabularyById(id: string): Promise<VocabularyEntry> {
+  const { data } = await apiClient.get<VocabularyEntry>(`/vocabulary/${id}`)
   return data
 }
 
-export async function updateWordStatus(
+export async function addVocabularyEntry(
+  payload: CreateVocabularyPayload,
+): Promise<VocabularyEntry> {
+  const { data } = await apiClient.post<VocabularyEntry>('/vocabulary', payload)
+  return data
+}
+
+export async function updateVocabularyEntry(
   id: string,
-  status: VocabularyStatus,
-): Promise<UserVocabularyEntry> {
-  const { data } = await apiClient.patch<UserVocabularyEntry>(`/vocabulary/${id}`, { status })
+  payload: UpdateVocabularyPayload,
+): Promise<VocabularyEntry> {
+  const { data } = await apiClient.patch<VocabularyEntry>(`/vocabulary/${id}`, payload)
+  return data
+}
+
+export async function deleteVocabularyEntry(id: string): Promise<void> {
+  await apiClient.delete(`/vocabulary/${id}`)
+}
+
+export async function fetchReviewQueue(): Promise<VocabularyEntry[]> {
+  const { data } = await apiClient.get<VocabularyEntry[]>('/vocabulary/review')
+  return data
+}
+
+export async function submitReview(
+  id: string,
+  payload: ReviewPayload,
+): Promise<VocabularyEntry> {
+  const { data } = await apiClient.post<VocabularyEntry>(
+    `/vocabulary/${id}/review`,
+    payload,
+  )
   return data
 }

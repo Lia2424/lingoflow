@@ -30,7 +30,7 @@ export default function ContentCard({ item }: ContentCardProps) {
     <button
       type="button"
       onClick={() => navigate(`/content/${item.id}`)}
-      className="group flex w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+      className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
     >
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
