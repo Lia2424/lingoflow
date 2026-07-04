@@ -128,7 +128,20 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html {
-    @apply font-sans;
+  button, a, select, label[for], [role="button"] {
+    cursor: pointer;
+  }
+  button:disabled, [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
