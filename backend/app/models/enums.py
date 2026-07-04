@@ -10,6 +10,15 @@ class CEFRLevel(enum.StrEnum):
     C2 = "C2"
 
 
+class SourceType(enum.StrEnum):
+    ARTICLE = "article"
+    PODCAST = "podcast"
+    YOUTUBE = "youtube"
+    MUSIC = "music"
+    TV_SHOW = "tv_show"
+    OTHER = "other"
+
+
 class ContentType(enum.StrEnum):
     ARTICLE = "article"
     PODCAST = "podcast"

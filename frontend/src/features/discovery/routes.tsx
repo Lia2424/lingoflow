@@ -1,7 +1,5 @@
 import type { RouteObject } from 'react-router-dom'
 
-import Placeholder from '@/components/ui/Placeholder'
+import DiscoveryPage from '@/features/discovery/DiscoveryPage'
 
-export const discoveryRoutes: RouteObject[] = [
-  { path: '/', element: <Placeholder label="Discovery Feed" /> },
-]
+export const discoveryRoutes: RouteObject[] = [{ path: '/', element: <DiscoveryPage /> }]

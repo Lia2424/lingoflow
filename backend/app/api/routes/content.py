@@ -1,62 +1,71 @@
-from typing import Annotated, Any
+import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
+from app.models.enums import CEFRLevel, SourceType
+from app.repositories.content import ContentRepository
+from app.schemas.content import ContentListResponse, ContentResponse, InteractRequest
+from app.schemas.errors import RESPONSES_401, RESPONSES_404, RESPONSES_422
+from app.services.content import ContentService
 
 router = APIRouter()
 
-# ── Milestone 2 implementation ─────────────────────────────────────────────
+
+def _service(db: DatabaseDep) -> ContentService:
+    return ContentService(ContentRepository(db))
 
 
-@router.get("")
+@router.get(
+    "",
+    response_model=ContentListResponse,
+    responses={**RESPONSES_401, **RESPONSES_422},
+)
 async def list_content(
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
     language: str | None = None,
-    cefr: str | None = None,
-    type: str | None = None,
-    q: str | None = None,
-    cursor: str | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
-) -> dict[str, Any]:
-    """
-    Discovery feed. Supports CEFR filter, content type, full-text search,
-    and cursor-based pagination (stable under concurrent inserts).
-    """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
+    cefr_level: CEFRLevel | None = None,
+    source_type: SourceType | None = None,
+    page: Annotated[int, Query(ge=1, le=100_000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> ContentListResponse:
+    return await _service(db).list(
+        language=language,
+        cefr_level=cefr_level,
+        source_type=source_type,
+        page=page,
+        page_size=page_size,
+    )
 
 
-@router.get("/{content_id}")
+@router.get(
+    "/{content_id}",
+    response_model=ContentResponse,
+    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_422},
+)
 async def get_content(
-    content_id: str,
+    content_id: uuid.UUID,
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
-) -> dict[str, Any]:
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
+) -> ContentResponse:
+    return await _service(db).get_by_id(content_id)
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
-async def create_content(db: DatabaseDep, user_id: CurrentUserIdDep) -> dict[str, Any]:
-    """Admin-only: add a new content item."""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
-
-
-@router.patch("/{content_id}")
-async def update_content(
-    content_id: str,
-    db: DatabaseDep,
-    user_id: CurrentUserIdDep,
-) -> dict[str, Any]:
-    """Admin-only: update content metadata."""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
-
-
-@router.post("/{content_id}/interact", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/{content_id}/interact",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_422},
+)
 async def interact_with_content(
-    content_id: str,
+    content_id: uuid.UUID,
+    data: InteractRequest,
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
 ) -> None:
-    """Record a user–content interaction (save, mark read, like, progress)."""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
+    await _service(db).interact(
+        user_id=user_id,
+        content_id=content_id,
+        data=data,
+    )
