@@ -1,43 +1,144 @@
-from typing import Any
+import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Query, status
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
+from app.repositories.vocabulary import VocabularyRepository
+from app.schemas.errors import (
+    RESPONSES_401,
+    RESPONSES_404,
+    RESPONSES_409,
+    RESPONSES_422,
+)
+from app.schemas.vocabulary import (
+    ReviewRequest,
+    VocabularyEntryCreate,
+    VocabularyEntryResponse,
+    VocabularyEntryUpdate,
+    VocabularyListResponse,
+)
+from app.services.vocabulary import VocabularyService
 
 router = APIRouter()
 
-# ── Milestone 4 implementation ─────────────────────────────────────────────
+
+def _service(db: DatabaseDep) -> VocabularyService:
+    return VocabularyService(VocabularyRepository(db))
 
 
-@router.get("")
-async def list_vocabulary(user_id: CurrentUserIdDep, db: DatabaseDep) -> dict[str, Any]:
-    """Return the authenticated user's saved vocabulary list."""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
+# ── Review queue — must come before /{entry_id} to avoid route shadowing ─────
 
-
-@router.post("", status_code=status.HTTP_201_CREATED)
-async def save_word(user_id: CurrentUserIdDep, db: DatabaseDep) -> dict[str, Any]:
-    """Add a word to the user's vocabulary tracker."""
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
-
-
-@router.delete("/{vocab_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_word(
-    vocab_id: str,
-    user_id: CurrentUserIdDep,
+@router.get(
+    "/review",
+    response_model=list[VocabularyEntryResponse],
+    responses={**RESPONSES_401},
+)
+async def get_review_queue(
     db: DatabaseDep,
+    user_id: CurrentUserIdDep,
+) -> list[VocabularyEntryResponse]:
+    """Return up to 20 entries that are due for review, most overdue first."""
+    return await _service(db).get_review_queue(user_id)
+
+
+# ── Collection ────────────────────────────────────────────────────────────────
+
+@router.post(
+    "",
+    response_model=VocabularyEntryResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={**RESPONSES_401, **RESPONSES_409, **RESPONSES_422},
+)
+async def create_vocabulary_entry(
+    data: VocabularyEntryCreate,
+    db: DatabaseDep,
+    user_id: CurrentUserIdDep,
+) -> VocabularyEntryResponse:
+    """Save a new word to the authenticated user's vocabulary list."""
+    return await _service(db).create(user_id, data)
+
+
+@router.get(
+    "",
+    response_model=VocabularyListResponse,
+    responses={**RESPONSES_401, **RESPONSES_422},
+)
+async def list_vocabulary(
+    db: DatabaseDep,
+    user_id: CurrentUserIdDep,
+    language: str | None = None,
+    srs_level: Annotated[int | None, Query(ge=0, le=5)] = None,
+    page: Annotated[int, Query(ge=1, le=100_000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> VocabularyListResponse:
+    """Return the authenticated user's vocabulary list with optional filters."""
+    return await _service(db).list_entries(
+        user_id=user_id,
+        language=language,
+        srs_level=srs_level,
+        page=page,
+        page_size=page_size,
+    )
+
+
+# ── Single entry ──────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{entry_id}",
+    response_model=VocabularyEntryResponse,
+    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_422},
+)
+async def get_vocabulary_entry(
+    entry_id: uuid.UUID,
+    db: DatabaseDep,
+    user_id: CurrentUserIdDep,
+) -> VocabularyEntryResponse:
+    return await _service(db).get_by_id(user_id, entry_id)
+
+
+@router.patch(
+    "/{entry_id}",
+    response_model=VocabularyEntryResponse,
+    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_422},
+)
+async def update_vocabulary_entry(
+    entry_id: uuid.UUID,
+    data: VocabularyEntryUpdate,
+    db: DatabaseDep,
+    user_id: CurrentUserIdDep,
+) -> VocabularyEntryResponse:
+    """Update definition, translation, or notes for an owned entry."""
+    return await _service(db).update(user_id, entry_id, data)
+
+
+@router.delete(
+    "/{entry_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_422},
+)
+async def delete_vocabulary_entry(
+    entry_id: uuid.UUID,
+    db: DatabaseDep,
+    user_id: CurrentUserIdDep,
 ) -> None:
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
+    await _service(db).delete(user_id, entry_id)
 
 
-@router.get("/content/{content_id}")
-async def vocabulary_for_content(
-    content_id: str,
-    user_id: CurrentUserIdDep,
+@router.post(
+    "/{entry_id}/review",
+    response_model=VocabularyEntryResponse,
+    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_422},
+)
+async def record_review(
+    entry_id: uuid.UUID,
+    data: ReviewRequest,
     db: DatabaseDep,
-) -> dict[str, Any]:
+    user_id: CurrentUserIdDep,
+) -> VocabularyEntryResponse:
     """
-    Return vocabulary entries extracted from a specific content item.
-    Results are cached after first extraction (Milestone 3).
+    Record a flashcard review result.
+    Correct advances the SRS level; incorrect resets it to 0 (due immediately).
+    Returns the updated entry with the new srs_level and next_review_at.
     """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # pragma: no cover
+    return await _service(db).record_review(user_id, entry_id, data)
