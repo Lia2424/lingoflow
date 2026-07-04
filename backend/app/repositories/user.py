@@ -56,6 +56,19 @@ class UserRepository:
         for field, value in data.model_dump(exclude_unset=True).items():
             if field in self._UPDATABLE_FIELDS:
                 setattr(user, field, value)
-        await self._db.commit()
+        try:
+            await self._db.commit()
+        except IntegrityError:
+            await self._db.rollback()
+            raise
         await self._db.refresh(user)
         return user
+
+    async def update_password(self, user: User, new_hashed_password: str) -> None:
+        user.hashed_password = new_hashed_password
+        await self._db.commit()
+
+    async def delete(self, user: User) -> None:
+        """Hard-delete the user row; cascades to all owned data."""
+        await self._db.delete(user)
+        await self._db.commit()

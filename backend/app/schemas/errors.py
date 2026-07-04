@@ -14,6 +14,10 @@ class ValidationErrorDetail(BaseModel):
 
 
 # Reusable responses= dicts for FastAPI route decorators.
+RESPONSES_400: _ResponsesDict = {
+    400: {"model": ErrorDetail, "description": "Bad request — invalid input"},
+}
+
 RESPONSES_401: _ResponsesDict = {
     401: {
         "model": ErrorDetail,

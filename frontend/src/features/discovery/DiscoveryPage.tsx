@@ -169,14 +169,6 @@ export default function DiscoveryPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
-        <h1 className="text-xl font-bold text-slate-900">Discovery</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Immerse yourself in authentic content at your level
-        </p>
-      </div>
-
       {/* Filter bar */}
       <div className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-end gap-3">
