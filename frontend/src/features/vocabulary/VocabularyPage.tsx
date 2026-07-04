@@ -306,23 +306,15 @@ export default function VocabularyPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Vocabulary</h1>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Words you're learning across all languages
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700"
-          >
-            + Add word
-          </button>
-        </div>
+      {/* Action bar */}
+      <div className="flex items-center justify-end border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+        <button
+          type="button"
+          onClick={() => setShowAddModal(true)}
+          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700"
+        >
+          + Add word
+        </button>
       </div>
 
       {/* Filters */}
