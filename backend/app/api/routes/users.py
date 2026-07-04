@@ -2,11 +2,18 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
 from app.core.security import hash_password, verify_password
+from app.models.user import User
 from app.repositories.user import UserRepository
-from app.schemas.errors import PROTECTED_RESPONSES, RESPONSES_404
+from app.schemas.errors import (
+    PROTECTED_RESPONSES,
+    RESPONSES_400,
+    RESPONSES_404,
+    RESPONSES_409,
+)
 from app.schemas.user import (
     ChangePasswordRequest,
     DeleteAccountRequest,
@@ -20,7 +27,7 @@ router = APIRouter()
 # ── Shared helper ─────────────────────────────────────────────────────────────
 
 
-async def _get_user_or_404(user_id: str, db: DatabaseDep) -> Any:
+async def _get_user_or_404(user_id: str, db: DatabaseDep) -> User:
     user = await UserRepository(db).get_by_id(uuid.UUID(user_id))
     if not user:
         raise HTTPException(
@@ -45,7 +52,7 @@ async def get_me(user_id: CurrentUserIdDep, db: DatabaseDep) -> UserResponse:
 @router.patch(
     "/me",
     response_model=UserResponse,
-    responses={**PROTECTED_RESPONSES, **RESPONSES_404},
+    responses={**PROTECTED_RESPONSES, **RESPONSES_404, **RESPONSES_409},
 )
 async def update_me(
     data: UpdateUserRequest,
@@ -54,7 +61,13 @@ async def update_me(
 ) -> UserResponse:
     repo = UserRepository(db)
     user = await _get_user_or_404(user_id, db)
-    updated = await repo.update(user, data)
+    try:
+        updated = await repo.update(user, data)
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="That username is already taken",
+        ) from None
     return UserResponse.model_validate(updated)
 
 
@@ -64,7 +77,7 @@ async def update_me(
 @router.post(
     "/me/change-password",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={**PROTECTED_RESPONSES, **RESPONSES_404},
+    responses={**PROTECTED_RESPONSES, **RESPONSES_400, **RESPONSES_404},
 )
 async def change_password(
     data: ChangePasswordRequest,
@@ -96,7 +109,7 @@ async def change_password(
 @router.delete(
     "/me",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={**PROTECTED_RESPONSES, **RESPONSES_404},
+    responses={**PROTECTED_RESPONSES, **RESPONSES_400, **RESPONSES_404},
 )
 async def delete_me(
     data: DeleteAccountRequest,

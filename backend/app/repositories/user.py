@@ -56,7 +56,11 @@ class UserRepository:
         for field, value in data.model_dump(exclude_unset=True).items():
             if field in self._UPDATABLE_FIELDS:
                 setattr(user, field, value)
-        await self._db.commit()
+        try:
+            await self._db.commit()
+        except IntegrityError:
+            await self._db.rollback()
+            raise
         await self._db.refresh(user)
         return user
 

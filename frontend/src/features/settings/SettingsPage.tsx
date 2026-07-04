@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -99,14 +99,17 @@ function ProfileSection() {
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Seed form once data arrives (similar pattern to ReviewPage queue seeding)
-  if (me && !initialised) {
-    setUsername(me.username)
-    setTargetLang(me.target_language)
-    setNativeLang(me.native_language)
-    setCefr(me.cefr_level)
-    setInitialised(true)
-  }
+  // Seed form fields once data arrives — must be in useEffect, not the render
+  // body, to avoid calling setState during render in React 18.
+  useEffect(() => {
+    if (me && !initialised) {
+      setUsername(me.username)
+      setTargetLang(me.target_language)
+      setNativeLang(me.native_language)
+      setCefr(me.cefr_level)
+      setInitialised(true)
+    }
+  }, [me, initialised])
 
   const { mutate, isPending } = useMutation({
     mutationFn: () =>

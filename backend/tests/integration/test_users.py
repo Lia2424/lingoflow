@@ -97,6 +97,22 @@ async def test_patch_me_ignores_unset_fields(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_patch_me_duplicate_username_returns_409(client: AsyncClient) -> None:
+    """Changing to an already-taken username must return 409, not 500."""
+    other = {**_USER, "email": "other@lingoflow.com", "username": "otheruser"}
+    await _register(client, other)
+
+    data = await _register(client)
+    r = await client.patch(
+        "/api/users/me",
+        json={"username": "otheruser"},
+        headers=_auth(data["access_token"]),
+    )
+    assert r.status_code == 409
+    assert "taken" in r.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
 async def test_patch_me_username_too_short_returns_422(client: AsyncClient) -> None:
     data = await _register(client)
     r = await client.patch(
