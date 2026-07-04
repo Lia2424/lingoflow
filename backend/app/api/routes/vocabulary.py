@@ -29,6 +29,7 @@ def _service(db: DatabaseDep) -> VocabularyService:
 
 # ── Review queue — must come before /{entry_id} to avoid route shadowing ─────
 
+
 @router.get(
     "/review",
     response_model=list[VocabularyEntryResponse],
@@ -43,6 +44,7 @@ async def get_review_queue(
 
 
 # ── Collection ────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "",
@@ -83,6 +85,7 @@ async def list_vocabulary(
 
 
 # ── Single entry ──────────────────────────────────────────────────────────────
+
 
 @router.get(
     "/{entry_id}",
