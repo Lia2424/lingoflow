@@ -211,7 +211,8 @@ async def test_delete_me_success(client: AsyncClient) -> None:
     data = await _register(client)
     token = data["access_token"]
 
-    r = await client.delete(
+    r = await client.request(
+        "DELETE",
         "/api/users/me",
         json={"password": _USER["password"]},
         headers=_auth(token),
@@ -229,7 +230,8 @@ async def test_delete_me_success(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_delete_me_wrong_password_returns_400(client: AsyncClient) -> None:
     data = await _register(client)
-    r = await client.delete(
+    r = await client.request(
+        "DELETE",
         "/api/users/me",
         json={"password": "notmypassword"},
         headers=_auth(data["access_token"]),
@@ -240,17 +242,18 @@ async def test_delete_me_wrong_password_returns_400(client: AsyncClient) -> None
 
 @pytest.mark.asyncio
 async def test_delete_me_without_token_returns_401(client: AsyncClient) -> None:
-    r = await client.delete("/api/users/me", json={"password": "x"})
+    r = await client.request("DELETE", "/api/users/me", json={"password": "x"})
     assert r.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_delete_me_token_invalid_after_deletion(client: AsyncClient) -> None:
-    """Using a stale token after account deletion should return 401."""
+    """Using a stale token after account deletion should return 404."""
     data = await _register(client)
     token = data["access_token"]
 
-    await client.delete(
+    await client.request(
+        "DELETE",
         "/api/users/me",
         json={"password": _USER["password"]},
         headers=_auth(token),
