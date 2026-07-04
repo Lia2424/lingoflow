@@ -67,7 +67,7 @@ async def create_vocabulary_entry(
 async def list_vocabulary(
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
-    language: str | None = None,
+    language: Annotated[str | None, Query(max_length=10)] = None,
     srs_level: Annotated[int | None, Query(ge=0, le=5)] = None,
     page: Annotated[int, Query(ge=1, le=100_000)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,

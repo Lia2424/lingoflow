@@ -24,8 +24,8 @@ export default function FlashCard({
   function handleGrade(correct: boolean) {
     if (correct) onCorrect()
     else onIncorrect()
-    // Reset flip state so the next card starts face-down
-    setRevealed(false)
+    // No need to reset `revealed` here — the parent keys FlashCard by entry.id,
+    // so the component unmounts and remounts for each new card automatically.
   }
 
   return (

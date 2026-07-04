@@ -1,7 +1,16 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDMixin
@@ -25,7 +34,9 @@ class VocabularyEntry(UUIDMixin, TimestampMixin, Base):
 
     # Spaced-repetition state (SM-2 inspired).
     # 0 = unseen / just added; 5 = fully mastered.
-    srs_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    srs_level: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
     # Null means "due immediately" (newly added, never reviewed).
     next_review_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
@@ -35,4 +46,8 @@ class VocabularyEntry(UUIDMixin, TimestampMixin, Base):
         # A user cannot save the exact same word (case-sensitive) twice for
         # the same language. Frees the UI from needing a separate check.
         UniqueConstraint("user_id", "word", "language", name="uq_user_word_language"),
+        CheckConstraint(
+            "srs_level >= 0 AND srs_level <= 5",
+            name="ck_vocabulary_entries_srs_level_range",
+        ),
     )

@@ -93,12 +93,13 @@ docker compose exec backend alembic upgrade head
 |---|---|---|
 | 0 — Scaffolding | Architecture, folder structure, Docker, CI | ✅ Complete |
 | 1 — Auth | JWT auth, user onboarding, protected routes | ✅ Complete |
-| 2 — Content + Discovery | Feed, filters, infinite scroll, content detail, interaction tracking | ✅ Complete |
-| 3 — Vocabulary & Flashcards | Word saving, SRS scheduling, flashcard review session | 🚧 In progress |
-| 4 — AI Integration | CEFR scoring, vocabulary extraction, sentence explanation | Pending |
-| 5 — Recommendations | Personalized feed, immersion plans | Pending |
-| 6 — Quizzes + Progress | AI quiz generation, stats dashboard | Pending |
-| 7 — Production | Structured logging, Sentry, Nginx, rate limiting hardening | Pending |
+| 2 — Content + Discovery | Feed, filters, horizontal rows, content detail, interaction tracking | ✅ Complete |
+| 3 — Vocabulary & Flashcards | Word saving, SRS scheduling, flashcard review session | ✅ Complete |
+| 4 — App Shell & User Profile | Global nav bar, user avatar, logout, settings page | 🚧 In progress |
+| 5 — AI Integration | CEFR scoring, vocabulary extraction, sentence explanation | Pending |
+| 6 — Recommendations | Personalized feed, immersion plans | Pending |
+| 7 — Quizzes + Progress | AI quiz generation, stats dashboard | Pending |
+| 8 — Production | Structured logging, Sentry, Nginx, rate limiting hardening | Pending |
 
 ### Seed sample data (Milestone 2+)
 

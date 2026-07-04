@@ -93,13 +93,13 @@ class VocabularyRepository:
         entry: VocabularyEntry,
         data: VocabularyEntryUpdate,
     ) -> VocabularyEntry:
-        """Apply non-None fields from data to entry and persist."""
-        if data.definition is not None:
-            entry.definition = data.definition
-        if data.translation is not None:
-            entry.translation = data.translation
-        if data.notes is not None:
-            entry.notes = data.notes
+        """Apply only the fields that were explicitly sent in the request.
+
+        Uses exclude_unset so that sending ``{"definition": null}`` clears the
+        field, while omitting ``definition`` entirely leaves it unchanged.
+        """
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(entry, field, value)
         await self._db.commit()
         await self._db.refresh(entry)
         return entry
@@ -116,8 +116,9 @@ class VocabularyRepository:
         now: datetime,
     ) -> list[VocabularyEntry]:
         """
-        Return up to _REVIEW_BATCH entries due for review, ordered by urgency
-        (most overdue first, then newly added entries with null next_review_at).
+        Return up to _REVIEW_BATCH entries due for review, ordered by urgency:
+        newly-added entries (null next_review_at) first, then most overdue first
+        (ascending timestamp → earliest due date appears first).
         """
         result = await self._db.execute(
             select(VocabularyEntry)

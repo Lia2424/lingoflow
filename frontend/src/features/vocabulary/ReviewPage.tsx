@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -49,25 +49,36 @@ export default function ReviewPage() {
   // Local copy of the queue so we can pop cards off without a refetch
   const [remaining, setRemaining] = useState<VocabularyEntry[] | null>(null)
   const [reviewed, setReviewed] = useState(0)
+  const [gradeError, setGradeError] = useState<string | null>(null)
 
-  // Initialise `remaining` once the query resolves (runs once)
+  // Initialise `remaining` once the query resolves — must be in useEffect, not
+  // the render body, to avoid calling setState during render in React 18.
+  useEffect(() => {
+    if (queue !== undefined && remaining === null) {
+      setRemaining(queue)
+    }
+    // remaining is intentionally excluded: we only want to seed once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue])
+
+  // While remaining hasn't been seeded yet, fall back to the raw queue so the
+  // loading spinner's exit doesn't flash the "nothing to review" empty state.
   const entries = remaining ?? queue ?? []
-  const total = (remaining ?? queue ?? []).length + reviewed
+  const total = entries.length + reviewed
   const current = entries[0] ?? null
-
-  function initIfNeeded(fetched: VocabularyEntry[]) {
-    if (remaining === null) setRemaining(fetched)
-  }
-  if (queue && remaining === null) initIfNeeded(queue)
 
   const { mutate: grade, isPending } = useMutation({
     mutationFn: ({ id, correct }: { id: string; correct: boolean }) =>
       submitReview(id, { correct }),
     onSuccess: () => {
+      setGradeError(null)
       setRemaining((prev) => (prev ? prev.slice(1) : []))
       setReviewed((n) => n + 1)
       // Invalidate list so SRS levels refresh if the user navigates back
       queryClient.invalidateQueries({ queryKey: ['vocabulary'] })
+    },
+    onError: () => {
+      setGradeError('Could not save your answer. Please try again.')
     },
   })
 
@@ -141,6 +152,11 @@ export default function ReviewPage() {
 
       {/* Progress + card */}
       <div className="mx-auto flex max-w-lg flex-col gap-8 px-4 py-10 sm:px-6">
+        {gradeError && (
+          <p className="rounded-lg bg-red-50 px-4 py-2 text-center text-sm text-red-600">
+            {gradeError}
+          </p>
+        )}
         <ProgressBar current={reviewed} total={total} />
 
         <FlashCard

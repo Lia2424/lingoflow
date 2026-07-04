@@ -218,9 +218,10 @@ interface DeleteDialogProps {
   onConfirm: () => void
   onCancel: () => void
   isPending: boolean
+  error?: string | null
 }
 
-function DeleteDialog({ word, onConfirm, onCancel, isPending }: DeleteDialogProps) {
+function DeleteDialog({ word, onConfirm, onCancel, isPending, error }: DeleteDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
@@ -229,6 +230,9 @@ function DeleteDialog({ word, onConfirm, onCancel, isPending }: DeleteDialogProp
           "<span className="font-medium text-slate-700">{word}</span>" will be removed
           from your vocabulary list. This cannot be undone.
         </p>
+        {error && (
+          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
@@ -261,6 +265,7 @@ export default function VocabularyPage() {
   const [page, setPage] = useState(1)
   const [showAddModal, setShowAddModal] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const filters = {
     language: language || undefined,
@@ -279,6 +284,10 @@ export default function VocabularyPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vocabulary'] })
       setPendingDeleteId(null)
+      setDeleteError(null)
+    },
+    onError: () => {
+      setDeleteError('Could not remove the word. Please try again.')
     },
   })
 
@@ -444,8 +453,9 @@ export default function VocabularyPage() {
         <DeleteDialog
           word={pendingDeleteEntry.word}
           onConfirm={() => deleteEntry(pendingDeleteId!)}
-          onCancel={() => setPendingDeleteId(null)}
+          onCancel={() => { setPendingDeleteId(null); setDeleteError(null) }}
           isPending={isDeleting}
+          error={deleteError}
         />
       )}
     </div>
