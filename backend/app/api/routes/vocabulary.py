@@ -1,9 +1,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
+from openai import OpenAIError
+from pydantic import BaseModel
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
+from app.integrations import ai as ai_integration
 from app.repositories.vocabulary import VocabularyRepository
 from app.schemas.errors import (
     RESPONSES_401,
@@ -145,3 +148,50 @@ async def record_review(
     Returns the updated entry with the new srs_level and next_review_at.
     """
     return await _service(db).record_review(user_id, entry_id, data)
+
+
+class DefinitionSuggestion(BaseModel):
+    definition: str
+    translation: str
+
+
+@router.post(
+    "/{entry_id}/suggest",
+    response_model=DefinitionSuggestion,
+    responses={
+        **RESPONSES_401,
+        **RESPONSES_404,
+        503: {"description": "AI service unavailable"},
+    },
+)
+async def suggest_definition(
+    entry_id: uuid.UUID,
+    db: DatabaseDep,
+    user_id: CurrentUserIdDep,
+) -> DefinitionSuggestion:
+    """Ask the AI to suggest a definition and translation for a saved word.
+
+    The suggestion is returned for the user to preview — it is **not** saved
+    automatically.  The frontend should let the user accept or discard it.
+    """
+    entry = await _service(db).get_by_id(user_id, entry_id)
+    try:
+        result = await ai_integration.generate_definition(
+            word=entry.word,
+            language=entry.language,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except OpenAIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI service unavailable — please try again later.",
+        ) from exc
+
+    return DefinitionSuggestion(
+        definition=result["definition"],
+        translation=result["translation"],
+    )

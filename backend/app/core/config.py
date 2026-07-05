@@ -35,7 +35,10 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must be at least 32 characters")
         return v
 
-    # OpenAI
+    # OpenAI-compatible AI backend
+    # Leave OPENAI_BASE_URL empty to use OpenAI.
+    # Set to https://api.groq.com/openai/v1 for Groq (free tier).
+    OPENAI_BASE_URL: str = ""
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 

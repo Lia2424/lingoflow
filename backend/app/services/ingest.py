@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.integrations import ai as ai_integration
 from app.integrations import article as article_integration
 from app.integrations import podcast_index as podcast_integration
 from app.integrations import youtube as youtube_integration
@@ -69,13 +70,16 @@ async def ingest_article(
     errors = 0
 
     try:
+        cefr = await _classify_or_default(
+            metadata.title, metadata.description or "", effective_language
+        )
         _, created = await repo.upsert_from_external(
             external_id=metadata.external_id,
             title=metadata.title,
             url=metadata.url,
             source_type=SourceType.ARTICLE,
             language=effective_language,
-            cefr_level=CEFRLevel.A1,
+            cefr_level=cefr,
             description=metadata.description,
         )
         if created:
@@ -114,13 +118,16 @@ async def _upsert_items(
 
     for item in items:
         try:
+            cefr = await _classify_or_default(
+                item.title, item.description or "", item.language
+            )
             _, created = await repo.upsert_from_external(
                 external_id=item.external_id,
                 title=item.title,
                 url=item.url,
                 source_type=item.source_type,
                 language=item.language,
-                cefr_level=item.cefr_level,
+                cefr_level=cefr,
                 thumbnail_url=item.thumbnail_url,
                 description=item.description,
                 duration_seconds=item.duration_seconds,
@@ -143,3 +150,18 @@ async def _upsert_items(
         updated=updated_count,
         errors=errors,
     )
+
+
+async def _classify_or_default(
+    title: str,
+    description: str,
+    language: str,
+) -> CEFRLevel:
+    """Call AI CEFR classifier; silently fall back to A1 if unavailable."""
+    try:
+        return await ai_integration.classify_cefr(title, description, language)
+    except Exception:
+        logger.debug(
+            "CEFR classification unavailable for %r — defaulting to A1", title
+        )
+        return CEFRLevel.A1
