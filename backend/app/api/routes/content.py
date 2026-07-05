@@ -84,7 +84,7 @@ class QuestionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-@router.post(
+@router.get(
     "/{content_id}/questions",
     response_model=list[QuestionResponse],
     responses={
