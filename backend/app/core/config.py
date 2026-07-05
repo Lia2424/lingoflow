@@ -39,5 +39,14 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 
+    # Content ingestion — external API keys
+    YOUTUBE_API_KEY: str = ""
+    PODCAST_INDEX_KEY: str = ""
+    PODCAST_INDEX_SECRET: str = ""
+
+    # Admin endpoints — protect with a static pre-shared key
+    # Generate with: openssl rand -hex 32
+    ADMIN_API_KEY: str = ""
+
 
 settings = Settings()  # type: ignore[call-arg]

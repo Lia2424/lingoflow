@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import ai, auth, content, recommendations, users, vocabulary
+from app.api.routes import admin, ai, auth, content, recommendations, users, vocabulary
 
 api_router = APIRouter()
 
@@ -12,3 +12,4 @@ api_router.include_router(
     recommendations.router, prefix="/recommendations", tags=["recommendations"]
 )
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
