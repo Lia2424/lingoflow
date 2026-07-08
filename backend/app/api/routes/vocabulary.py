@@ -106,7 +106,7 @@ async def get_vocabulary_entry(
 @router.patch(
     "/{entry_id}",
     response_model=VocabularyEntryResponse,
-    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_422},
+    responses={**RESPONSES_401, **RESPONSES_404, **RESPONSES_409, **RESPONSES_422},
 )
 async def update_vocabulary_entry(
     entry_id: uuid.UUID,
@@ -114,7 +114,7 @@ async def update_vocabulary_entry(
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
 ) -> VocabularyEntryResponse:
-    """Update definition, translation, or notes for an owned entry."""
+    """Update word, language, definition, translation, or notes for an owned entry."""
     return await _service(db).update(user_id, entry_id, data)
 
 

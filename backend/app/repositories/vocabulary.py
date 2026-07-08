@@ -98,10 +98,19 @@ class VocabularyRepository:
         Uses exclude_unset so that sending ``{"definition": null}`` clears the
         field, while omitting ``definition`` entirely leaves it unchanged.
         """
-        for field, value in data.model_dump(exclude_unset=True).items():
+        updates = data.model_dump(exclude_unset=True)
+        if "word" in updates:
+            updates["word"] = updates["word"].strip()
+        if "language" in updates:
+            updates["language"] = updates["language"].lower()
+        for field, value in updates.items():
             setattr(entry, field, value)
-        await self._db.commit()
-        await self._db.refresh(entry)
+        try:
+            await self._db.commit()
+            await self._db.refresh(entry)
+        except IntegrityError:
+            await self._db.rollback()
+            raise
         return entry
 
     async def delete(self, entry: VocabularyEntry) -> None:

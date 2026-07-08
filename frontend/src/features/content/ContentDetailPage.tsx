@@ -4,9 +4,8 @@ import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import VocabularyWordModal from '@/features/vocabulary/VocabularyWordModal'
 import { CEFR_COLORS, SOURCE_COLORS, SOURCE_LABELS } from '@/lib/contentDisplay'
-import { addVocabularyEntry } from '@/services/vocabulary'
-import { LANGUAGES } from '@/lib/languages'
 import type { InteractionStatus } from '@/types'
 import { fetchContentById, interactWithContent } from '@/services/content'
 
@@ -35,165 +34,6 @@ function formatDate(iso: string | null): string {
     month: 'long',
     day: 'numeric',
   })
-}
-
-// ── Save-word modal ───────────────────────────────────────────────────────────
-
-interface SaveWordModalProps {
-  contentId: string
-  defaultLanguage: string
-  onClose: () => void
-}
-
-function SaveWordModal({ contentId, defaultLanguage, onClose }: SaveWordModalProps) {
-  const queryClient = useQueryClient()
-
-  const [word, setWord] = useState('')
-  const [language, setLanguage] = useState(defaultLanguage)
-  const [definition, setDefinition] = useState('')
-  const [translation, setTranslation] = useState('')
-  const [notes, setNotes] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      addVocabularyEntry({
-        word: word.trim(),
-        language,
-        definition: definition || null,
-        translation: translation || null,
-        notes: notes || null,
-        content_id: contentId,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vocabulary'] })
-      onClose()
-    },
-    onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Failed to save word. Please try again.'
-      setError(msg)
-    },
-  })
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    if (!word.trim()) return
-    mutate()
-  }
-
-  const inputClass =
-    'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400'
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Save a word</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
-          )}
-
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="mb-1 block text-xs font-medium text-slate-500">
-                Word <span className="text-red-400">*</span>
-              </label>
-              <input
-                value={word}
-                onChange={(e) => setWord(e.target.value)}
-                placeholder="e.g. amistad"
-                required
-                maxLength={200}
-                autoFocus
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">
-                Language <span className="text-red-400">*</span>
-              </label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              >
-                {LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Definition</label>
-            <input
-              value={definition}
-              onChange={(e) => setDefinition(e.target.value)}
-              placeholder="e.g. friendship"
-              maxLength={2000}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Translation</label>
-            <input
-              value={translation}
-              onChange={(e) => setTranslation(e.target.value)}
-              placeholder="e.g. friendship (EN)"
-              maxLength={2000}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any extra context…"
-              rows={2}
-              maxLength={2000}
-              className={`${inputClass} resize-none`}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !word.trim()}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-            >
-              {isPending ? 'Saving…' : 'Save word'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
 }
 
 // ── Action bar ────────────────────────────────────────────────────────────────
@@ -434,9 +274,10 @@ export default function ContentDetailPage() {
       </div>
 
       {showSaveWord && (
-        <SaveWordModal
+        <VocabularyWordModal
           contentId={item.id}
-          defaultLanguage={item.language}
+          initialLanguage={item.language}
+          autoFocusWord
           onClose={() => setShowSaveWord(false)}
         />
       )}

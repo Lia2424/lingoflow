@@ -271,6 +271,36 @@ async def test_update_entry_persists_changes(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_entry_can_change_word(client: AsyncClient) -> None:
+    token = await _register_and_get_token(client)
+    entry = await _create_entry(client, token, word="libro", definition="book")
+
+    resp = await client.patch(
+        f"/api/vocabulary/{entry['id']}",
+        json={"word": "libro nuevo"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["word"] == "libro nuevo"
+
+
+@pytest.mark.asyncio
+async def test_update_entry_duplicate_word_returns_409(client: AsyncClient) -> None:
+    token = await _register_and_get_token(client)
+    await _create_entry(client, token, word="casa")
+    entry = await _create_entry(client, token, word="perro")
+
+    resp = await client.patch(
+        f"/api/vocabulary/{entry['id']}",
+        json={"word": "casa"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_update_entry_returns_404_for_another_users_entry(
     client: AsyncClient,
 ) -> None:

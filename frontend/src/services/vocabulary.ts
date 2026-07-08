@@ -20,6 +20,8 @@ export interface CreateVocabularyPayload {
 }
 
 export interface UpdateVocabularyPayload {
+  word?: string
+  language?: string
   definition?: string | null
   translation?: string | null
   notes?: string | null
@@ -27,6 +29,11 @@ export interface UpdateVocabularyPayload {
 
 export interface ReviewPayload {
   correct: boolean
+}
+
+export interface DefinitionSuggestion {
+  definition: string
+  translation: string
 }
 
 // ── API calls ─────────────────────────────────────────────────────────────────
@@ -76,6 +83,15 @@ export async function submitReview(
   const { data } = await apiClient.post<VocabularyEntry>(
     `/vocabulary/${id}/review`,
     payload,
+  )
+  return data
+}
+
+export async function suggestVocabularyDefinition(
+  id: string,
+): Promise<DefinitionSuggestion> {
+  const { data } = await apiClient.post<DefinitionSuggestion>(
+    `/vocabulary/${id}/suggest`,
   )
   return data
 }
