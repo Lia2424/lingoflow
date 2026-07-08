@@ -80,7 +80,7 @@ async def classify_cefr(
                         "Given a content title and description, classify its "
                         "CEFR level for a language learner. "
                         "Valid levels: A1, A2, B1, B2, C1, C2. "
-                        'Respond with exactly: {"level": "<LEVEL>"}'
+                        'Respond in JSON format with exactly: {"level": "<LEVEL>"}'
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -143,7 +143,7 @@ async def generate_definition(
                         "provide a concise English definition and an English "
                         "translation. If a context sentence is provided, use it "
                         "to give the contextually correct meaning. "
-                        "Respond with: "
+                        "Respond in JSON format: "
                         '{"definition": "<English definition>", '
                         '"translation": "<English translation>"}'
                     ),
@@ -213,7 +213,7 @@ async def generate_questions(
                         "the given content to help learners test their "
                         "understanding. Each question must have exactly 4 "
                         "options and one correct answer. "
-                        "Respond with: "
+                        "Respond in JSON format: "
                         '{"questions": [{"question": "...", '
                         '"options": ["A", "B", "C", "D"], '
                         '"answer_index": 0}]}'
