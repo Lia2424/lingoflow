@@ -175,6 +175,11 @@ async def suggest_definition(
     automatically.  The frontend should let the user accept or discard it.
     """
     entry = await _service(db).get_by_id(user_id, entry_id)
+    if entry.definition and entry.translation:
+        return DefinitionSuggestion(
+            definition=entry.definition,
+            translation=entry.translation,
+        )
     try:
         result = await ai_integration.generate_definition(
             word=entry.word,

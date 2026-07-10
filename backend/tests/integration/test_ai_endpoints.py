@@ -55,10 +55,17 @@ async def _create_entry(
     *,
     word: str = "hola",
     language: str = "es",
+    definition: str | None = None,
+    translation: str | None = None,
 ) -> dict:
+    payload: dict[str, str] = {"word": word, "language": language}
+    if definition is not None:
+        payload["definition"] = definition
+    if translation is not None:
+        payload["translation"] = translation
     r = await client.post(
         "/api/vocabulary",
-        json={"word": word, "language": language},
+        json=payload,
         headers=_auth(token),
     )
     assert r.status_code == 201, r.text
@@ -143,6 +150,33 @@ async def test_suggest_definition_does_not_save_to_entry(
         f"/api/vocabulary/{entry['id']}", headers=_auth(token)
     )
     assert r.json()["definition"] is None
+
+
+@pytest.mark.asyncio
+async def test_suggest_returns_saved_fields_without_calling_ai(
+    client: AsyncClient,
+) -> None:
+    token = await _register(client)
+    entry = await _create_entry(
+        client,
+        token,
+        word="hola",
+        definition="a greeting",
+        translation="hello",
+    )
+
+    with patch(
+        "app.api.routes.vocabulary.ai_integration.generate_definition",
+        new=AsyncMock(return_value=_MOCK_DEFINITION),
+    ) as mock_generate:
+        r = await client.post(
+            f"/api/vocabulary/{entry['id']}/suggest", headers=_auth(token)
+        )
+
+    assert r.status_code == 200
+    assert r.json()["definition"] == "a greeting"
+    assert r.json()["translation"] == "hello"
+    mock_generate.assert_not_called()
 
 
 @pytest.mark.asyncio
