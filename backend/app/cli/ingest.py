@@ -30,7 +30,11 @@ async def _run(
     limit: int,
 ) -> None:
     # Import here so the module can be imported without a database connection
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     from app.core.config import settings
     from app.services import ingest as ingest_service
@@ -92,10 +96,7 @@ def main() -> None:
     parser.add_argument(
         "--query",
         required=True,
-        help=(
-            "Search query for youtube/podcast. "
-            "Full URL for article source."
-        ),
+        help=("Search query for youtube/podcast. Full URL for article source."),
     )
     parser.add_argument(
         "--limit",

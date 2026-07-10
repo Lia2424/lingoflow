@@ -46,11 +46,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def default_groq_model(self) -> Self:
-        """Use a Groq model when the base URL points at Groq but the model wasn't changed."""
-        if (
-            "groq.com" in self.OPENAI_BASE_URL
-            and self.OPENAI_MODEL == "gpt-4o-mini"
-        ):
+        """Use a Groq model when the base URL points at Groq and model is default."""
+        if "groq.com" in self.OPENAI_BASE_URL and self.OPENAI_MODEL == "gpt-4o-mini":
             self.OPENAI_MODEL = "llama-3.1-8b-instant"
         return self
 

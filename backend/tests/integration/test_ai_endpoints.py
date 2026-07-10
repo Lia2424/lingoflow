@@ -139,9 +139,7 @@ async def test_suggest_definition_does_not_save_to_entry(
             f"/api/vocabulary/{entry['id']}/suggest", headers=_auth(token)
         )
 
-    r = await client.get(
-        f"/api/vocabulary/{entry['id']}", headers=_auth(token)
-    )
+    r = await client.get(f"/api/vocabulary/{entry['id']}", headers=_auth(token))
     assert r.json()["definition"] is None
 
 
@@ -260,9 +258,7 @@ async def test_get_questions_returns_404_for_unknown_content(
     client: AsyncClient,
 ) -> None:
     token = await _register(client)
-    r = await client.get(
-        f"/api/content/{uuid.uuid4()}/questions", headers=_auth(token)
-    )
+    r = await client.get(f"/api/content/{uuid.uuid4()}/questions", headers=_auth(token))
     assert r.status_code == 404
 
 

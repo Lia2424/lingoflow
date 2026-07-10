@@ -32,9 +32,7 @@ async def sqlite_session(
     )
     async with engine.begin() as conn:
         await conn.run_sync(
-            lambda sync_conn: Base.metadata.create_all(
-                sync_conn, tables=list(tables)
-            )
+            lambda sync_conn: Base.metadata.create_all(sync_conn, tables=list(tables))
         )
 
     session_factory = async_sessionmaker(
@@ -45,8 +43,6 @@ async def sqlite_session(
 
     async with engine.begin() as conn:
         await conn.run_sync(
-            lambda sync_conn: Base.metadata.drop_all(
-                sync_conn, tables=list(tables)
-            )
+            lambda sync_conn: Base.metadata.drop_all(sync_conn, tables=list(tables))
         )
     await engine.dispose()

@@ -20,7 +20,6 @@ from app.integrations.ai import (
 )
 from app.models.enums import CEFRLevel
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
@@ -99,9 +98,7 @@ async def test_classify_cefr_raises_runtime_error_when_no_api_key() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_definition_returns_definition_and_translation() -> None:
-    payload = json.dumps(
-        {"definition": "A friendly greeting", "translation": "hello"}
-    )
+    payload = json.dumps({"definition": "A friendly greeting", "translation": "hello"})
     with _patch_client(payload):
         result = await generate_definition("hola", "es")
 
@@ -138,9 +135,7 @@ async def test_generate_definition_raises_runtime_error_when_no_api_key() -> Non
 @pytest.mark.asyncio
 async def test_generate_definition_includes_context_sentence_in_prompt() -> None:
     """Verify the context sentence is passed through to the API call."""
-    payload = json.dumps(
-        {"definition": "To run fast", "translation": "correr"}
-    )
+    payload = json.dumps({"definition": "To run fast", "translation": "correr"})
     mock_client = MagicMock()
     mock_client.chat.completions.create = AsyncMock(
         return_value=_mock_completion(payload)

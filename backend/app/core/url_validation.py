@@ -31,6 +31,9 @@ class URLValidationError(ValueError):
     """Raised when a URL is not safe to fetch server-side."""
 
 
+_IpAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
+
+
 def _allowed_schemes() -> frozenset[str]:
     if settings.ENVIRONMENT == "production":
         return frozenset({"https"})
@@ -55,7 +58,7 @@ def _ip_blocked(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     )
 
 
-def _resolve_host_ips(hostname: str) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+def _resolve_host_ips(hostname: str) -> list[_IpAddress]:
     """Resolve *hostname* and return parsed IP addresses."""
     try:
         infos = socket.getaddrinfo(
@@ -66,7 +69,7 @@ def _resolve_host_ips(hostname: str) -> list[ipaddress.IPv4Address | ipaddress.I
     except socket.gaierror as exc:
         raise URLValidationError(f"Cannot resolve hostname: {hostname}") from exc
 
-    ips: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
+    ips: list[_IpAddress] = []
     for info in infos:
         sockaddr = info[4]
         if not sockaddr:

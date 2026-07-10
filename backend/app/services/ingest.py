@@ -104,8 +104,7 @@ async def ingest_article(
 async def _upsert_items(
     db: AsyncSession,
     items: Sequence[
-        youtube_integration.YouTubeVideoItem
-        | podcast_integration.PodcastEpisodeItem
+        youtube_integration.YouTubeVideoItem | podcast_integration.PodcastEpisodeItem
     ],
     source_type_label: str,
     language: str,
@@ -161,7 +160,5 @@ async def _classify_or_default(
     try:
         return await ai_integration.classify_cefr(title, description, language)
     except Exception:
-        logger.debug(
-            "CEFR classification unavailable for %r — defaulting to A1", title
-        )
+        logger.debug("CEFR classification unavailable for %r — defaulting to A1", title)
         return CEFRLevel.A1

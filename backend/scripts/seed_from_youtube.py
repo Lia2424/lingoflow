@@ -47,7 +47,11 @@ QUERIES = [
 
 
 async def _run() -> None:
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     from app.core.config import settings
     from app.services.ingest import ingest_youtube

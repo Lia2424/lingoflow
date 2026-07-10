@@ -185,7 +185,9 @@ async def test_ingest_returns_503_when_service_raises_runtime_error(
         patch("app.api.routes.admin.settings") as s,
         patch(
             "app.api.routes.admin.ingest_service.ingest_youtube",
-            new=AsyncMock(side_effect=RuntimeError("YOUTUBE_API_KEY is not configured")),
+            new=AsyncMock(
+                side_effect=RuntimeError("YOUTUBE_API_KEY is not configured")
+            ),
         ),
     ):
         s.ADMIN_API_KEY = "test-key"

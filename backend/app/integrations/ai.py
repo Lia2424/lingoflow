@@ -34,6 +34,7 @@ class QuestionDict(TypedDict):
     options: list[str]
     answer_index: int
 
+
 logger = logging.getLogger(__name__)
 
 _CEFR_VALUES = {level.value for level in CEFRLevel}
@@ -152,9 +153,7 @@ async def classify_cefr(
         OpenAIError: On network / quota errors.
     """
     prompt = (
-        f"Language: {language}\n"
-        f"Title: {title}\n"
-        f"Description: {description or '(none)'}"
+        f"Language: {language}\nTitle: {title}\nDescription: {description or '(none)'}"
     )
     try:
         response = await _chat_completion(
@@ -213,9 +212,7 @@ async def generate_definition(
         RuntimeError: If ``OPENAI_API_KEY`` is not set.
         OpenAIError: On network / quota errors.
     """
-    context_part = (
-        f"\nContext sentence: {context_sentence}" if context_sentence else ""
-    )
+    context_part = f"\nContext sentence: {context_sentence}" if context_sentence else ""
     prompt = f"Word: {word}\nLanguage: {language}{context_part}"
 
     try:

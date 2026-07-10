@@ -110,9 +110,7 @@ class VocabularyService:
             language = (data.language or current_language).upper()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=(
-                    f"'{word}' already exists in your {language} vocabulary list."
-                ),
+                detail=(f"'{word}' already exists in your {language} vocabulary list."),
             ) from None
         return VocabularyEntryResponse.model_validate(updated)
 

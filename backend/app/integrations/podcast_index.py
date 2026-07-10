@@ -127,9 +127,7 @@ async def search_episodes(
                 raw_ts = ep.get("datePublished")
                 if raw_ts:
                     with contextlib.suppress(ValueError, OSError):
-                        published_at = datetime.fromtimestamp(
-                            int(raw_ts), tz=UTC
-                        )
+                        published_at = datetime.fromtimestamp(int(raw_ts), tz=UTC)
 
                 items.append(
                     PodcastEpisodeItem(

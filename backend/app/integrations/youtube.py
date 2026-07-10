@@ -99,10 +99,9 @@ async def search_videos(
 
         title: str = snippet.get("title", "")
         description: str | None = snippet.get("description") or None
-        thumbnail_url: str | None = (
-            snippet.get("thumbnails", {}).get("high", {}).get("url")
-            or snippet.get("thumbnails", {}).get("default", {}).get("url")
-        )
+        thumbnail_url: str | None = snippet.get("thumbnails", {}).get("high", {}).get(
+            "url"
+        ) or snippet.get("thumbnails", {}).get("default", {}).get("url")
         published_at: datetime | None = None
         raw_published = snippet.get("publishedAt")
         if raw_published:
@@ -117,10 +116,14 @@ async def search_videos(
 
         # Prefer the declared audio language; fall back to the search language
         detected_lang: str = (
-            snippet.get("defaultAudioLanguage")
-            or snippet.get("defaultLanguage")
-            or language
-        ).split("-")[0].lower()
+            (
+                snippet.get("defaultAudioLanguage")
+                or snippet.get("defaultLanguage")
+                or language
+            )
+            .split("-")[0]
+            .lower()
+        )
 
         items.append(
             YouTubeVideoItem(
@@ -146,9 +149,7 @@ def _parse_iso_duration(iso: str) -> int | None:
 
     if not iso:
         return None
-    m = re.fullmatch(
-        r"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso
-    )
+    m = re.fullmatch(r"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso)
     if not m:
         return None
     days, hours, minutes, seconds = (int(v or 0) for v in m.groups())

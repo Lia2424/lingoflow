@@ -54,8 +54,7 @@ class IngestRequest(BaseModel):
         min_length=1,
         max_length=500,
         description=(
-            "Search query for youtube/podcast. "
-            "For article: the full URL to extract."
+            "Search query for youtube/podcast. For article: the full URL to extract."
         ),
     )
     limit: int = Field(
@@ -124,9 +123,7 @@ async def trigger_ingest(
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=service_unavailable_from_runtime(
-                exc, context="admin ingest"
-            ),
+            detail=service_unavailable_from_runtime(exc, context="admin ingest"),
         ) from exc
 
     return IngestResponse(

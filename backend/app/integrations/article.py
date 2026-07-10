@@ -57,8 +57,7 @@ async def extract_metadata(url: str) -> ArticleMetadata:
     """
     if not _TRAFILATURA_AVAILABLE:
         raise RuntimeError(
-            "trafilatura is not installed. "
-            "Add it to pyproject.toml dependencies."
+            "trafilatura is not installed. Add it to pyproject.toml dependencies."
         )
 
     try:
@@ -71,8 +70,7 @@ async def extract_metadata(url: str) -> ArticleMetadata:
         follow_redirects=False,
         headers={
             "User-Agent": (
-                "Mozilla/5.0 (compatible; LingoFlow/0.1; "
-                "+https://github.com/lingoflow)"
+                "Mozilla/5.0 (compatible; LingoFlow/0.1; +https://github.com/lingoflow)"
             )
         },
     ) as client:

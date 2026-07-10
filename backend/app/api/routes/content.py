@@ -132,9 +132,7 @@ async def get_or_generate_questions(
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=service_unavailable_from_runtime(
-                exc, context="question generation"
-            ),
+            detail=service_unavailable_from_runtime(exc, context="question generation"),
         ) from exc
     except OpenAIError as exc:
         raise HTTPException(
