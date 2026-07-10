@@ -199,7 +199,8 @@ async def test_suggest_definition_returns_503_when_ai_unavailable(
         )
 
     assert r.status_code == 503
-    assert "OPENAI_API_KEY" in r.json()["detail"]
+    assert "OPENAI_API_KEY" not in r.json()["detail"]
+    assert "unavailable" in r.json()["detail"].lower()
 
 
 # ── GET /content/{id}/questions ───────────────────────────────────────────────
@@ -289,6 +290,8 @@ async def test_get_questions_returns_503_when_ai_unavailable(
         )
 
     assert r.status_code == 503
+    assert "OPENAI_API_KEY" not in r.json()["detail"]
+    assert "unavailable" in r.json()["detail"].lower()
 
 
 @pytest.mark.asyncio

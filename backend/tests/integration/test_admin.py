@@ -196,7 +196,8 @@ async def test_ingest_returns_503_when_service_raises_runtime_error(
         )
 
     assert r.status_code == 503
-    assert "YOUTUBE_API_KEY" in r.json()["detail"]
+    assert "YOUTUBE_API_KEY" not in r.json()["detail"]
+    assert "unavailable" in r.json()["detail"].lower()
 
 
 # ── Input validation ──────────────────────────────────────────────────────────

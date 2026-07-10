@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from openai import NotFoundError, RateLimitError
 
+from app.core.errors import ai_unavailable_detail
 from app.integrations.ai import (
-    ai_unavailable_detail,
     classify_cefr,
     generate_definition,
     generate_questions,
@@ -307,4 +307,4 @@ def test_ai_unavailable_detail_for_rate_limit() -> None:
 
 def test_ai_unavailable_detail_for_model_not_found() -> None:
     exc = NotFoundError("missing model", response=MagicMock(), body=None)
-    assert "model not found" in ai_unavailable_detail(exc).lower()
+    assert "unavailable" in ai_unavailable_detail(exc).lower()
