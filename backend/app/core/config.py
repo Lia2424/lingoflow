@@ -53,8 +53,6 @@ class Settings(BaseSettings):
 
     # Content ingestion — external API keys
     YOUTUBE_API_KEY: str = ""
-    PODCAST_INDEX_KEY: str = ""
-    PODCAST_INDEX_SECRET: str = ""
 
     # Admin endpoints — protect with a static pre-shared key
     # Generate with: openssl rand -hex 32

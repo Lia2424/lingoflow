@@ -96,10 +96,11 @@ docker compose exec backend alembic upgrade head
 | 2 — Content + Discovery | Feed, filters, content detail, interaction tracking | ✅ Complete |
 | 3 — Vocabulary & Flashcards | Word saving, SRS scheduling, flashcard review session | ✅ Complete |
 | 4 — App Shell & User Profile | Global nav bar, user menu, settings page, profile/password endpoints | ✅ Complete |
-| 5 — AI & Content Ingestion | YouTube/podcast/article ingest, CEFR auto-classify, AI vocab suggest, comprehension quizzes, admin ingest API, security hardening (SSRF, rate limits, error sanitization) | ✅ Complete |
-| 6 — Auth & Platform Hardening | httpOnly refresh cookies, token revocation, server-side quiz grading, scheduled ingest jobs | Pending |
-| 7 — Recommendations & Immersion | Personalized feed, immersion plans | Pending |
-| 8 — Production | Structured logging, Sentry, Nginx, observability, stats dashboard | Pending |
+| 5 — YouTube Ingestion & AI | YouTube bulk/weekly ingest, CEFR auto-classify, AI vocab suggest, comprehension quizzes, security hardening | ✅ Complete |
+| 6 — Podcast & Article Ingestion | Podcast Index or iTunes/RSS, article extraction, curated URLs | Pending |
+| 7 — Auth & Platform Hardening | httpOnly cookies, token revocation, server-side quiz grading | Pending |
+| 8 — Recommendations & Immersion | Personalized feed, immersion plans | Pending |
+| 9 — Production | Structured logging, Sentry, Nginx, observability, stats dashboard | Pending |
 
 ### Seed sample data
 
@@ -107,11 +108,16 @@ docker compose exec backend alembic upgrade head
 # Static demo catalog (no API keys)
 docker compose exec backend python scripts/seed_content.py
 
-# Bulk YouTube ingest — requires YOUTUBE_API_KEY (Milestone 5+)
+# One-time bulk YouTube fill (API key required)
 docker compose exec backend python scripts/seed_from_youtube.py
+
+# Weekly YouTube refresh
+docker compose exec backend python scripts/weekly_ingest
 ```
 
-The static seed loads 21 items across source types, CEFR levels, and languages. The YouTube script upserts real videos for all supported languages and is safe to re-run.
+Bulk seed loads ~240 real videos across 8 languages. `weekly_ingest` adds ~80/week. Podcast and article ingest → Milestone 6.
+
+**Scheduling:** Mac `crontab` is for local dev only. When you deploy, set up cron on the server, a PaaS scheduler, or GitHub Actions — see `CONTENT_INGESTION.md`.
 
 ---
 

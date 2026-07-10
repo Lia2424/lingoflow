@@ -7,14 +7,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.integrations.article import ArticleMetadata
-from app.integrations.podcast_index import PodcastEpisodeItem
 from app.integrations.youtube import YouTubeVideoItem
 from app.models.enums import CEFRLevel, SourceType
 from app.services.ingest import (
     _classify_or_default,
-    ingest_article,
-    ingest_podcasts,
     ingest_youtube,
 )
 
@@ -31,21 +27,6 @@ def _youtube_item() -> YouTubeVideoItem:
         description="A lesson",
         duration_seconds=300,
         published_at=datetime(2024, 1, 1, tzinfo=UTC),
-    )
-
-
-def _podcast_item() -> PodcastEpisodeItem:
-    return PodcastEpisodeItem(
-        external_id="podcast:ep-1",
-        title="News in Slow Spanish",
-        url="https://example.com/ep1.mp3",
-        source_type=SourceType.PODCAST,
-        language="es",
-        cefr_level=CEFRLevel.A1,
-        thumbnail_url=None,
-        description="Episode 1",
-        duration_seconds=600,
-        published_at=datetime(2024, 2, 1, tzinfo=UTC),
     )
 
 
@@ -66,6 +47,7 @@ async def test_ingest_youtube_counts_created_and_updated() -> None:
         patch("app.services.ingest.ContentRepository") as repo_cls,
     ):
         repo = repo_cls.return_value
+        repo.get_by_external_id = AsyncMock(return_value=None)
         repo.upsert_from_external = AsyncMock(
             side_effect=[(MagicMock(), True), (MagicMock(), False)]
         )
@@ -80,13 +62,42 @@ async def test_ingest_youtube_counts_created_and_updated() -> None:
 
 
 @pytest.mark.asyncio
-async def test_ingest_podcasts_counts_errors() -> None:
+async def test_ingest_youtube_skips_cefr_classify_on_update() -> None:
+    db = MagicMock()
+    existing = MagicMock()
+    existing.cefr_level = CEFRLevel.C1
+
+    with (
+        patch(
+            "app.services.ingest.youtube_integration.search_videos",
+            new=AsyncMock(return_value=[_youtube_item()]),
+        ),
+        patch(
+            "app.services.ingest.ai_integration.classify_cefr",
+            new=AsyncMock(return_value=CEFRLevel.A1),
+        ) as mock_classify,
+        patch("app.services.ingest.ContentRepository") as repo_cls,
+    ):
+        repo = repo_cls.return_value
+        repo.get_by_external_id = AsyncMock(return_value=existing)
+        repo.upsert_from_external = AsyncMock(return_value=(MagicMock(), False))
+
+        result = await ingest_youtube(db, "es", "learn spanish", limit=1)
+
+    assert result.updated == 1
+    mock_classify.assert_not_called()
+    repo.upsert_from_external.assert_awaited_once()
+    assert repo.upsert_from_external.await_args.kwargs["cefr_level"] == CEFRLevel.C1
+
+
+@pytest.mark.asyncio
+async def test_ingest_youtube_counts_errors() -> None:
     db = MagicMock()
 
     with (
         patch(
-            "app.services.ingest.podcast_integration.search_episodes",
-            new=AsyncMock(return_value=[_podcast_item()]),
+            "app.services.ingest.youtube_integration.search_videos",
+            new=AsyncMock(return_value=[_youtube_item()]),
         ),
         patch(
             "app.services.ingest.ai_integration.classify_cefr",
@@ -95,80 +106,12 @@ async def test_ingest_podcasts_counts_errors() -> None:
         patch("app.services.ingest.ContentRepository") as repo_cls,
     ):
         repo = repo_cls.return_value
+        repo.get_by_external_id = AsyncMock(return_value=None)
         repo.upsert_from_external = AsyncMock(side_effect=RuntimeError("db down"))
 
-        result = await ingest_podcasts(db, "es", "news", limit=1)
+        result = await ingest_youtube(db, "es", "learn spanish", limit=1)
 
-    assert result.source_type == "podcast"
-    assert result.total_fetched == 1
     assert result.errors == 1
-
-
-@pytest.mark.asyncio
-async def test_ingest_article_uses_metadata_language() -> None:
-    db = MagicMock()
-    metadata = ArticleMetadata(
-        external_id="article:abc",
-        title="Article title",
-        url="https://example.com/article",
-        language="fr",
-        description="Summary",
-        body="Body text",
-        author="Author",
-    )
-
-    with (
-        patch(
-            "app.services.ingest.article_integration.extract_metadata",
-            new=AsyncMock(return_value=metadata),
-        ),
-        patch(
-            "app.services.ingest.ai_integration.classify_cefr",
-            new=AsyncMock(return_value=CEFRLevel.B1),
-        ),
-        patch("app.services.ingest.ContentRepository") as repo_cls,
-    ):
-        repo = repo_cls.return_value
-        repo.upsert_from_external = AsyncMock(return_value=(MagicMock(), True))
-
-        result = await ingest_article(db, metadata.url)
-
-    assert result.language == "fr"
-    assert result.created == 1
-    assert result.errors == 0
-
-
-@pytest.mark.asyncio
-async def test_ingest_article_falls_back_to_requested_language() -> None:
-    db = MagicMock()
-    metadata = ArticleMetadata(
-        external_id="article:abc",
-        title="Article title",
-        url="https://example.com/article",
-        language=None,
-        description=None,
-        body=None,
-        author=None,
-    )
-
-    with (
-        patch(
-            "app.services.ingest.article_integration.extract_metadata",
-            new=AsyncMock(return_value=metadata),
-        ),
-        patch(
-            "app.services.ingest.ai_integration.classify_cefr",
-            new=AsyncMock(return_value=CEFRLevel.A2),
-        ),
-        patch("app.services.ingest.ContentRepository") as repo_cls,
-    ):
-        repo = repo_cls.return_value
-        repo.upsert_from_external = AsyncMock(return_value=(MagicMock(), False))
-
-        result = await ingest_article(db, metadata.url, language="de")
-
-    assert result.language == "de"
-    assert result.updated == 1
 
 
 @pytest.mark.asyncio

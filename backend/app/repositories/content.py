@@ -51,6 +51,12 @@ class ContentRepository:
         result = await self._db.execute(select(Content).where(Content.id == content_id))
         return result.scalar_one_or_none()
 
+    async def get_by_external_id(self, external_id: str) -> Content | None:
+        result = await self._db.execute(
+            select(Content).where(Content.external_id == external_id)
+        )
+        return result.scalar_one_or_none()
+
     async def upsert_from_external(
         self,
         external_id: str,

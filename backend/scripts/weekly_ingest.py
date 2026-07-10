@@ -1,25 +1,27 @@
-"""Bulk-seed the content table from YouTube for all supported languages.
+"""Weekly incremental YouTube ingest.
 
-Usage (from the backend/ directory):
-    /path/to/.venv/bin/python -m scripts.seed_from_youtube
+Fetches a small batch of new videos per language. Safe to re-run — upserts on
+``external_id``, no duplicates.
 
-Runs a curated set of queries per language, deduplicates via external_id,
-and auto-classifies CEFR levels via Groq.  Safe to re-run — already-seen
-videos are updated, not duplicated.
+Usage (from backend/):
+    .venv/bin/python -m scripts.weekly_ingest
+
+Schedule with cron (Sundays 9am) — see scripts/weekly_ingest.sh header.
 """
+
+from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 
-from scripts.ingest_queries import BULK_YOUTUBE_QUERIES
+from scripts.ingest_queries import WEEKLY_YOUTUBE_QUERIES
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-QUERIES = BULK_YOUTUBE_QUERIES
 
-
-async def _run() -> None:
+async def _run() -> int:
     from sqlalchemy.ext.asyncio import (
         AsyncSession,
         async_sessionmaker,
@@ -34,18 +36,17 @@ async def _run() -> None:
         engine, class_=AsyncSession, expire_on_commit=False
     )
 
-    total_created = 0
-    total_updated = 0
     total_errors = 0
 
-    for language, query, limit in QUERIES:
-        logger.info("── %s | %r", language.upper(), query)
+    logger.info(
+        "=== Weekly YouTube ingest (%d queries) ===",
+        len(WEEKLY_YOUTUBE_QUERIES),
+    )
+    for language, query, limit in WEEKLY_YOUTUBE_QUERIES:
+        logger.info("── %s | %r | limit=%d", language.upper(), query, limit)
         async with session_factory() as db:
             try:
                 result = await ingest_youtube(db, language, query, limit)
-                total_created += result.created
-                total_updated += result.updated
-                total_errors += result.errors
                 logger.info(
                     "   fetched=%d created=%d updated=%d errors=%d",
                     result.total_fetched,
@@ -53,17 +54,15 @@ async def _run() -> None:
                     result.updated,
                     result.errors,
                 )
+                total_errors += result.errors
             except Exception:
-                logger.exception("   Failed — skipping query")
+                logger.exception("   Ingest failed — skipping query")
+                total_errors += 1
 
     await engine.dispose()
-    logger.info(
-        "\nDone — total created=%d updated=%d errors=%d",
-        total_created,
-        total_updated,
-        total_errors,
-    )
+    logger.info("Weekly ingest finished — total_errors=%d", total_errors)
+    return 1 if total_errors else 0
 
 
 if __name__ == "__main__":
-    asyncio.run(_run())
+    sys.exit(asyncio.run(_run()))

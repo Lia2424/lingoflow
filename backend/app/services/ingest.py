@@ -1,7 +1,6 @@
-"""Content ingestion service.
+"""Content ingestion service — YouTube only (Milestone 5).
 
-Orchestrates fetching from external sources (YouTube, Podcast Index,
-articles) and persisting results via ContentRepository.
+Podcast and article ingestion deferred to Milestone 6.
 """
 
 from __future__ import annotations
@@ -13,10 +12,8 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.integrations import ai as ai_integration
-from app.integrations import article as article_integration
-from app.integrations import podcast_index as podcast_integration
 from app.integrations import youtube as youtube_integration
-from app.models.enums import CEFRLevel, SourceType
+from app.models.enums import CEFRLevel
 from app.repositories.content import ContentRepository
 
 logger = logging.getLogger(__name__)
@@ -44,68 +41,9 @@ async def ingest_youtube(
     return await _upsert_items(db, items, "youtube", language, query)
 
 
-async def ingest_podcasts(
-    db: AsyncSession,
-    language: str,
-    query: str,
-    limit: int = 20,
-) -> IngestResult:
-    """Fetch podcast episodes and upsert into the content table."""
-    items = await podcast_integration.search_episodes(language, query, limit)
-    return await _upsert_items(db, items, "podcast", language, query)
-
-
-async def ingest_article(
-    db: AsyncSession,
-    url: str,
-    language: str | None = None,
-) -> IngestResult:
-    """Extract an article from *url* and upsert into the content table."""
-    metadata = await article_integration.extract_metadata(url)
-    effective_language = language or metadata.language or "en"
-
-    repo = ContentRepository(db)
-    created_count = 0
-    updated_count = 0
-    errors = 0
-
-    try:
-        cefr = await _classify_or_default(
-            metadata.title, metadata.description or "", effective_language
-        )
-        _, created = await repo.upsert_from_external(
-            external_id=metadata.external_id,
-            title=metadata.title,
-            url=metadata.url,
-            source_type=SourceType.ARTICLE,
-            language=effective_language,
-            cefr_level=cefr,
-            description=metadata.description,
-        )
-        if created:
-            created_count += 1
-        else:
-            updated_count += 1
-    except Exception:
-        logger.exception("Failed to upsert article %s", url)
-        errors += 1
-
-    return IngestResult(
-        source_type="article",
-        language=effective_language,
-        query=url,
-        total_fetched=1,
-        created=created_count,
-        updated=updated_count,
-        errors=errors,
-    )
-
-
 async def _upsert_items(
     db: AsyncSession,
-    items: Sequence[
-        youtube_integration.YouTubeVideoItem | podcast_integration.PodcastEpisodeItem
-    ],
+    items: Sequence[youtube_integration.YouTubeVideoItem],
     source_type_label: str,
     language: str,
     query: str,
@@ -117,9 +55,13 @@ async def _upsert_items(
 
     for item in items:
         try:
-            cefr = await _classify_or_default(
-                item.title, item.description or "", item.language
-            )
+            existing = await repo.get_by_external_id(item.external_id)
+            if existing is not None:
+                cefr = existing.cefr_level
+            else:
+                cefr = await _classify_or_default(
+                    item.title, item.description or "", item.language
+                )
             _, created = await repo.upsert_from_external(
                 external_id=item.external_id,
                 title=item.title,
