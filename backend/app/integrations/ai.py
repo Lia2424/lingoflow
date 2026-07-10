@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from openai import (
     APIConnectionError,
@@ -24,6 +24,7 @@ from openai import (
     OpenAIError,
     RateLimitError,
 )
+from openai.types.chat import ChatCompletion
 
 from app.core.config import settings
 from app.models.enums import CEFRLevel
@@ -59,13 +60,16 @@ def _client() -> AsyncOpenAI:
     )
 
 
-async def _chat_completion(**kwargs: Any):
+async def _chat_completion(**kwargs: Any) -> ChatCompletion:
     """Call chat completions with retries for transient provider errors."""
     client = _client()
     delays = (1.0, 2.0, 4.0, 8.0)
     for attempt, delay in enumerate(delays):
         try:
-            return await client.chat.completions.create(**kwargs)
+            return cast(
+                ChatCompletion,
+                await client.chat.completions.create(**kwargs),
+            )
         except _RETRYABLE_ERRORS as exc:
             if attempt == len(delays) - 1:
                 logger.warning(
@@ -86,6 +90,7 @@ async def _chat_completion(**kwargs: Any):
             await asyncio.sleep(delay)
         except OpenAIError:
             raise
+    raise RuntimeError("OpenAI chat completion exhausted retries")
 
 
 def _coerce_answer_index(value: Any) -> int | None:

@@ -102,11 +102,11 @@ def validate_fetch_url(url: str) -> None:
 
     # Literal IP in the URL — check before DNS.
     try:
-        literal = ipaddress.ip_address(hostname)
+        literal_ip: _IpAddress = ipaddress.ip_address(hostname)
     except ValueError:
-        literal = None
+        pass
     else:
-        if _ip_blocked(literal):
+        if _ip_blocked(literal_ip):
             raise URLValidationError("URL points to a private or reserved address.")
         return
 

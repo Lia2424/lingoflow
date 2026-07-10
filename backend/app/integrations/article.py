@@ -86,11 +86,11 @@ async def extract_metadata(url: str) -> ArticleMetadata:
         output_format="python",
     )
 
-    if not result:
+    if not result or not isinstance(result, dict):
         # Fall back to basic HTML meta tag extraction
         return _fallback_extract(url, html)
 
-    title: str = result.get("title") or _url_to_title(url)
+    title: str = str(result.get("title") or _url_to_title(url))
     language: str | None = result.get("language") or None
     description: str | None = result.get("description") or None
     body: str | None = result.get("text") or None
