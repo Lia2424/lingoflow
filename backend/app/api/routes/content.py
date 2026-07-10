@@ -128,7 +128,7 @@ async def get_or_generate_questions(
     except OpenAIError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service unavailable — please try again later.",
+            detail=ai_integration.ai_unavailable_detail(exc),
         ) from exc
 
     if not raw_questions:

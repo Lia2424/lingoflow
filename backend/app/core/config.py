@@ -1,4 +1,6 @@
-from pydantic import field_validator
+from typing import Self
+
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,6 +43,16 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str = ""
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
+
+    @model_validator(mode="after")
+    def default_groq_model(self) -> Self:
+        """Use a Groq model when the base URL points at Groq but the model wasn't changed."""
+        if (
+            "groq.com" in self.OPENAI_BASE_URL
+            and self.OPENAI_MODEL == "gpt-4o-mini"
+        ):
+            self.OPENAI_MODEL = "llama-3.1-8b-instant"
+        return self
 
     # Content ingestion — external API keys
     YOUTUBE_API_KEY: str = ""

@@ -10,6 +10,7 @@ import type { InteractionStatus } from '@/types'
 import { fetchContentById, interactWithContent } from '@/services/content'
 
 import ContentDetailSkeleton from './ContentDetailSkeleton'
+import QuestionsSection from './QuestionsSection'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -271,6 +272,8 @@ export default function ContentDetailPage() {
             + Save a word
           </button>
         </div>
+
+        <QuestionsSection contentId={item.id} />
       </div>
 
       {showSaveWord && (

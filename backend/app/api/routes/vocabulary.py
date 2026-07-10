@@ -188,7 +188,7 @@ async def suggest_definition(
     except OpenAIError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service unavailable — please try again later.",
+            detail=ai_integration.ai_unavailable_detail(exc),
         ) from exc
 
     return DefinitionSuggestion(

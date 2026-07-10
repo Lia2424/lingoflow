@@ -10,8 +10,14 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from openai import NotFoundError, RateLimitError
 
-from app.integrations.ai import classify_cefr, generate_definition, generate_questions
+from app.integrations.ai import (
+    ai_unavailable_detail,
+    classify_cefr,
+    generate_definition,
+    generate_questions,
+)
 from app.models.enums import CEFRLevel
 
 
@@ -30,12 +36,11 @@ def _mock_completion(content: str) -> MagicMock:
 
 
 def _patch_client(content: str) -> Any:
-    """Patch _client() so chat.completions.create returns *content* as a string."""
-    mock_client = MagicMock()
-    mock_client.chat.completions.create = AsyncMock(
-        return_value=_mock_completion(content)
+    """Patch _chat_completion so the AI call returns *content* as a string."""
+    return patch(
+        "app.integrations.ai._chat_completion",
+        new=AsyncMock(return_value=_mock_completion(content)),
     )
-    return patch("app.integrations.ai._client", return_value=mock_client)
 
 
 # ── classify_cefr ─────────────────────────────────────────────────────────────
@@ -245,3 +250,61 @@ async def test_generate_questions_raises_runtime_error_when_no_api_key() -> None
         mock_settings.OPENAI_API_KEY = ""
         with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
             await generate_questions("Content", "desc", "en")
+
+
+@pytest.mark.asyncio
+async def test_generate_questions_accepts_string_answer_index() -> None:
+    payload = json.dumps(
+        {
+            "questions": [
+                {
+                    "question": "Good question?",
+                    "options": ["A", "B", "C", "D"],
+                    "answer_index": "2",
+                }
+            ]
+        }
+    )
+    with _patch_client(payload):
+        result = await generate_questions("Test content", "desc", "en", n=1)
+
+    assert len(result) == 1
+    assert result[0]["answer_index"] == 2
+
+
+@pytest.mark.asyncio
+async def test_generate_questions_retries_when_first_response_is_empty() -> None:
+    good = json.dumps(
+        {
+            "questions": [
+                {
+                    "question": "Retry worked?",
+                    "options": ["A", "B", "C", "D"],
+                    "answer_index": 0,
+                }
+            ]
+        }
+    )
+    with patch(
+        "app.integrations.ai._chat_completion",
+        new=AsyncMock(
+            side_effect=[
+                _mock_completion("not json"),
+                _mock_completion(good),
+            ]
+        ),
+    ):
+        result = await generate_questions("Test content", "desc", "en", n=1)
+
+    assert len(result) == 1
+    assert result[0]["question"] == "Retry worked?"
+
+
+def test_ai_unavailable_detail_for_rate_limit() -> None:
+    exc = RateLimitError("rate limit", response=MagicMock(), body=None)
+    assert "rate limit" in ai_unavailable_detail(exc).lower()
+
+
+def test_ai_unavailable_detail_for_model_not_found() -> None:
+    exc = NotFoundError("missing model", response=MagicMock(), body=None)
+    assert "model not found" in ai_unavailable_detail(exc).lower()

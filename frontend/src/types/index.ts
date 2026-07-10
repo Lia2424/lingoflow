@@ -114,6 +114,13 @@ export interface SentenceExplanation {
   }>
 }
 
+export interface ContentQuestion {
+  id: string
+  question: string
+  options: string[]
+  answer_index: number
+}
+
 export interface QuizQuestion {
   id: string
   type: 'multiple_choice' | 'fill_in_the_blank'
