@@ -60,4 +60,9 @@ ignore_missing_imports = true
 
 [tool.coverage.run]
 source = ["app"]
-omit = ["app/db/migrations/*", "tests/*"]
+omit = ["app/db/migrations/*", "app/cli/*", "tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
