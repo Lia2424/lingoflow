@@ -1,11 +1,13 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from openai import OpenAIError
 from pydantic import BaseModel
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
+from app.core.errors import ai_unavailable_detail, service_unavailable_from_runtime
+from app.core.limiter import get_user_or_ip, limiter
 from app.integrations import ai as ai_integration
 from app.repositories.vocabulary import VocabularyRepository
 from app.schemas.errors import (
@@ -164,7 +166,9 @@ class DefinitionSuggestion(BaseModel):
         503: {"description": "AI service unavailable"},
     },
 )
+@limiter.limit("30/hour", key_func=get_user_or_ip)
 async def suggest_definition(
+    request: Request,
     entry_id: uuid.UUID,
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
@@ -183,12 +187,14 @@ async def suggest_definition(
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
+            detail=service_unavailable_from_runtime(
+                exc, context="definition suggestion"
+            ),
         ) from exc
     except OpenAIError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=ai_integration.ai_unavailable_detail(exc),
+            detail=ai_unavailable_detail(exc),
         ) from exc
 
     return DefinitionSuggestion(

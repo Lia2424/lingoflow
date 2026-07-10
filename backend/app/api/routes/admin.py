@@ -9,13 +9,17 @@ and should never be exposed publicly without a reverse-proxy restriction.
 
 from __future__ import annotations
 
+import secrets
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.core.dependencies import DatabaseDep
+from app.core.errors import service_unavailable_from_runtime
+from app.core.limiter import limiter
+from app.core.url_validation import URLValidationError, validate_fetch_url
 from app.services import ingest as ingest_service
 
 router = APIRouter()
@@ -30,7 +34,7 @@ def _require_admin_key(x_admin_key: Annotated[str | None, Header()] = None) -> N
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Admin endpoints are not configured on this server.",
         )
-    if x_admin_key != settings.ADMIN_API_KEY:
+    if not secrets.compare_digest(x_admin_key or "", settings.ADMIN_API_KEY):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing X-Admin-Key header.",
@@ -82,7 +86,9 @@ class IngestResponse(BaseModel):
         503: {"description": "Admin endpoints not configured"},
     },
 )
+@limiter.limit("5/minute")
 async def trigger_ingest(
+    request: Request,
     body: IngestRequest,
     db: DatabaseDep,
     x_admin_key: Annotated[str | None, Header()] = None,
@@ -105,13 +111,22 @@ async def trigger_ingest(
                 db, body.language, body.query, body.limit
             )
         else:
+            try:
+                validate_fetch_url(body.query)
+            except URLValidationError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=str(exc),
+                ) from exc
             result = await ingest_service.ingest_article(
                 db, url=body.query, language=body.language
             )
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
+            detail=service_unavailable_from_runtime(
+                exc, context="admin ingest"
+            ),
         ) from exc
 
     return IngestResponse(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.integrations.ai import QuestionDict
@@ -12,6 +12,14 @@ from app.models.content_question import ContentQuestion
 class ContentQuestionRepository:
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
+
+    async def acquire_generation_lock(self, content_id: uuid.UUID) -> None:
+        """Serialize first-time question generation for one content item."""
+        bind = self._db.get_bind()
+        if bind.dialect.name != "postgresql":
+            return
+        lock_key = content_id.int % (2**31 - 1)
+        await self._db.execute(select(func.pg_advisory_xact_lock(lock_key)))
 
     async def get_by_content_id(self, content_id: uuid.UUID) -> list[ContentQuestion]:
         """Return all cached questions for a content item, oldest first."""

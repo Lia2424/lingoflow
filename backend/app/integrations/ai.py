@@ -20,9 +20,7 @@ from openai import (
     APIConnectionError,
     APITimeoutError,
     AsyncOpenAI,
-    AuthenticationError,
     InternalServerError,
-    NotFoundError,
     OpenAIError,
     RateLimitError,
 )
@@ -87,23 +85,6 @@ async def _chat_completion(**kwargs: Any):
             await asyncio.sleep(delay)
         except OpenAIError:
             raise
-
-
-def ai_unavailable_detail(exc: OpenAIError) -> str:
-    if isinstance(exc, RateLimitError):
-        return "AI rate limit reached — wait a minute and try again."
-    if isinstance(exc, AuthenticationError):
-        return "AI API key is invalid — check OPENAI_API_KEY in your .env."
-    if isinstance(exc, NotFoundError):
-        return (
-            "AI model not found — set OPENAI_MODEL to a model your provider "
-            f"supports (currently {settings.OPENAI_MODEL!r})."
-        )
-    if isinstance(exc, (APIConnectionError, APITimeoutError)):
-        return "AI service timed out — please try again."
-    if isinstance(exc, InternalServerError):
-        return "AI provider is temporarily overloaded — please try again."
-    return "AI service unavailable — please try again later."
 
 
 def _coerce_answer_index(value: Any) -> int | None:

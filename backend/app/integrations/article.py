@@ -14,7 +14,11 @@ from dataclasses import dataclass
 
 import httpx
 
+from app.core.url_validation import URLValidationError, ensure_fetch_url_safe
+
 logger = logging.getLogger(__name__)
+
+_MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # 5 MiB
 
 # trafilatura is an optional heavy dependency.  Import lazily so the rest of
 # the application still starts even if the package is missing (relevant for
@@ -57,9 +61,14 @@ async def extract_metadata(url: str) -> ArticleMetadata:
             "Add it to pyproject.toml dependencies."
         )
 
+    try:
+        await ensure_fetch_url_safe(url)
+    except URLValidationError as exc:
+        raise ValueError(str(exc)) from exc
+
     async with httpx.AsyncClient(
         timeout=20.0,
-        follow_redirects=True,
+        follow_redirects=False,
         headers={
             "User-Agent": (
                 "Mozilla/5.0 (compatible; LingoFlow/0.1; "
@@ -67,9 +76,7 @@ async def extract_metadata(url: str) -> ArticleMetadata:
             )
         },
     ) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        html = response.text
+        html = await _fetch_html(client, url)
 
     # trafilatura.bare_extraction returns a dict or None
     result = trafilatura.bare_extraction(
@@ -100,6 +107,20 @@ async def extract_metadata(url: str) -> ArticleMetadata:
         body=body,
         author=author,
     )
+
+
+async def _fetch_html(client: httpx.AsyncClient, url: str) -> str:
+    """Download *url* with a hard response-size cap."""
+    async with client.stream("GET", url) as response:
+        response.raise_for_status()
+        chunks: list[bytes] = []
+        total = 0
+        async for chunk in response.aiter_bytes():
+            total += len(chunk)
+            if total > _MAX_RESPONSE_BYTES:
+                raise ValueError("Article response exceeds the maximum allowed size.")
+            chunks.append(chunk)
+    return b"".join(chunks).decode(response.encoding or "utf-8", errors="replace")
 
 
 def _url_hash(url: str) -> str:

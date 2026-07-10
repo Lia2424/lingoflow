@@ -1,11 +1,13 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from openai import OpenAIError
 from pydantic import BaseModel
 
 from app.core.dependencies import CurrentUserIdDep, DatabaseDep
+from app.core.errors import ai_unavailable_detail, service_unavailable_from_runtime
+from app.core.limiter import get_user_or_ip, limiter
 from app.integrations import ai as ai_integration
 from app.models.enums import CEFRLevel, SourceType
 from app.repositories.content import ContentRepository
@@ -93,7 +95,9 @@ class QuestionResponse(BaseModel):
         503: {"description": "AI service unavailable"},
     },
 )
+@limiter.limit("10/hour", key_func=get_user_or_ip)
 async def get_or_generate_questions(
+    request: Request,
     content_id: uuid.UUID,
     db: DatabaseDep,
     user_id: CurrentUserIdDep,
@@ -113,6 +117,11 @@ async def get_or_generate_questions(
     if cached:
         return [QuestionResponse.model_validate(q) for q in cached]
 
+    await q_repo.acquire_generation_lock(content_id)
+    cached = await q_repo.get_by_content_id(content_id)
+    if cached:
+        return [QuestionResponse.model_validate(q) for q in cached]
+
     try:
         raw_questions = await ai_integration.generate_questions(
             content_title=content.title,
@@ -123,12 +132,14 @@ async def get_or_generate_questions(
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
+            detail=service_unavailable_from_runtime(
+                exc, context="question generation"
+            ),
         ) from exc
     except OpenAIError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=ai_integration.ai_unavailable_detail(exc),
+            detail=ai_unavailable_detail(exc),
         ) from exc
 
     if not raw_questions:
