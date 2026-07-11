@@ -33,12 +33,14 @@ function daysUntilReview(nextReviewAt: string | null): string {
 
 interface VocabularyCardProps {
   entry: VocabularyEntry
+  onEdit: (entry: VocabularyEntry) => void
   onDelete: (id: string) => void
   isDeleting: boolean
 }
 
 export default function VocabularyCard({
   entry,
+  onEdit,
   onDelete,
   isDeleting,
 }: VocabularyCardProps) {
@@ -82,17 +84,26 @@ export default function VocabularyCard({
         </p>
       )}
 
-      {/* Footer: due date + delete */}
+      {/* Footer: due date + actions */}
       <div className="flex items-center justify-between border-t border-slate-100 pt-2">
         <span className="text-xs text-slate-400">{daysUntilReview(entry.next_review_at)}</span>
-        <button
-          type="button"
-          disabled={isDeleting}
-          onClick={() => onDelete(entry.id)}
-          className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 transition-colors"
-        >
-          Remove
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onEdit(entry)}
+            className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={() => onDelete(entry.id)}
+            className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 transition-colors"
+          >
+            Remove
+          </button>
+        </div>
       </div>
     </div>
   )

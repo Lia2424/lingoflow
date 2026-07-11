@@ -24,6 +24,15 @@ const ROWS: { type: SourceType; label: string; emoji: string }[] = [
   { type: 'other', label: 'Other', emoji: '🔗' },
 ]
 
+const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
+  youtube: 'YouTube',
+  podcast: 'Podcasts',
+  music: 'Music',
+  tv_show: 'TV Shows',
+  article: 'Articles',
+  other: 'Other',
+}
+
 const ROW_SIZE = 12
 
 // ── Filter bar ────────────────────────────────────────────────────────────────
@@ -148,6 +157,11 @@ export default function DiscoveryPage() {
 
   const [language, setLanguage] = useState<string>(selectedLanguage ?? '')
   const [cefrLevel, setCefrLevel] = useState<string>(selectedCEFR ?? '')
+  const [sourceType, setSourceType] = useState<string>('')
+
+  const visibleRows = sourceType
+    ? ROWS.filter((r) => r.type === sourceType)
+    : ROWS
 
   const sharedFilters = {
     language: language || undefined,
@@ -155,7 +169,8 @@ export default function DiscoveryPage() {
     page_size: ROW_SIZE,
   }
 
-  // One query per source type — all run in parallel
+  // One query per source type — all run in parallel regardless of filter
+  // so switching the dropdown is instant (no re-fetch).
   const results = useQueries({
     queries: ROWS.map((row) => ({
       queryKey: ['content', { ...sharedFilters, source_type: row.type }],
@@ -164,8 +179,13 @@ export default function DiscoveryPage() {
     })),
   })
 
-  const allLoading = results.every((r) => r.isLoading)
-  const anyItems = results.some((r) => (r.data?.items.length ?? 0) > 0)
+  const visibleResults = visibleRows.map(
+    (row) => results[ROWS.findIndex((r) => r.type === row.type)],
+  )
+
+  const allLoading = visibleResults.every((r) => r.isLoading)
+  const anyItems = visibleResults.some((r) => (r.data?.items.length ?? 0) > 0)
+  const hasActiveFilter = !!(language || cefrLevel || sourceType)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -190,12 +210,22 @@ export default function DiscoveryPage() {
             ))}
           </FilterSelect>
 
-          {(language || cefrLevel) && (
+          <FilterSelect label="Content Type" value={sourceType} onChange={setSourceType}>
+            <option value="">All types</option>
+            {ROWS.map((row) => (
+              <option key={row.type} value={row.type}>
+                {row.emoji} {SOURCE_TYPE_LABELS[row.type]}
+              </option>
+            ))}
+          </FilterSelect>
+
+          {hasActiveFilter && (
             <button
               type="button"
               onClick={() => {
                 setLanguage('')
                 setCefrLevel('')
+                setSourceType('')
               }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm hover:bg-slate-50"
             >
@@ -207,13 +237,13 @@ export default function DiscoveryPage() {
 
       {/* Rows */}
       <div className="divide-y divide-slate-100">
-        {ROWS.map((row, i) => (
+        {visibleRows.map((row, i) => (
           <ContentRow
             key={row.type}
             label={row.label}
             emoji={row.emoji}
-            items={results[i].data?.items ?? []}
-            isLoading={results[i].isLoading}
+            items={visibleResults[i].data?.items ?? []}
+            isLoading={visibleResults[i].isLoading}
           />
         ))}
       </div>

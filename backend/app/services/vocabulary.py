@@ -101,7 +101,17 @@ class VocabularyService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Vocabulary entry not found",
             )
-        updated = await self._repo.update(entry, data)
+        current_word = entry.word
+        current_language = entry.language
+        try:
+            updated = await self._repo.update(entry, data)
+        except IntegrityError:
+            word = data.word or current_word
+            language = (data.language or current_language).upper()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(f"'{word}' already exists in your {language} vocabulary list."),
+            ) from None
         return VocabularyEntryResponse.model_validate(updated)
 
     async def delete(self, user_id: str, entry_id: uuid.UUID) -> None:

@@ -1,5 +1,5 @@
 import apiClient from '@/lib/axios'
-import type { CEFRLevel, ContentItem, PagedResponse, SourceType } from '@/types'
+import type { CEFRLevel, ContentItem, ContentQuestion, PagedResponse, SourceType } from '@/types'
 
 export interface ContentFilters {
   language?: string
@@ -28,4 +28,15 @@ export async function interactWithContent(
   payload: { status: string; rating?: number | null },
 ): Promise<void> {
   await apiClient.post(`/content/${contentId}/interact`, payload)
+}
+
+export async function fetchContentQuestions(
+  contentId: string,
+  n = 5,
+): Promise<ContentQuestion[]> {
+  const { data } = await apiClient.get<ContentQuestion[]>(
+    `/content/${contentId}/questions`,
+    { params: { n }, timeout: 120_000 },
+  )
+  return data
 }

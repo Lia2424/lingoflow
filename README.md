@@ -93,21 +93,31 @@ docker compose exec backend alembic upgrade head
 |---|---|---|
 | 0 — Scaffolding | Architecture, folder structure, Docker, CI | ✅ Complete |
 | 1 — Auth | JWT auth, user onboarding, protected routes | ✅ Complete |
-| 2 — Content + Discovery | Feed, filters, horizontal rows, content detail, interaction tracking | ✅ Complete |
+| 2 — Content + Discovery | Feed, filters, content detail, interaction tracking | ✅ Complete |
 | 3 — Vocabulary & Flashcards | Word saving, SRS scheduling, flashcard review session | ✅ Complete |
-| 4 — App Shell & User Profile | Global nav bar, user avatar, logout, settings page | 🚧 In progress |
-| 5 — AI Integration | CEFR scoring, vocabulary extraction, sentence explanation | Pending |
-| 6 — Recommendations | Personalized feed, immersion plans | Pending |
-| 7 — Quizzes + Progress | AI quiz generation, stats dashboard | Pending |
-| 8 — Production | Structured logging, Sentry, Nginx, rate limiting hardening | Pending |
+| 4 — App Shell & User Profile | Global nav bar, user menu, settings page, profile/password endpoints | ✅ Complete |
+| 5 — YouTube Ingestion & AI | YouTube bulk/weekly ingest, CEFR auto-classify, AI vocab suggest, comprehension quizzes, security hardening | ✅ Complete |
+| 6 — Podcast & Article Ingestion | Podcast Index or iTunes/RSS, article extraction, curated URLs | Pending |
+| 7 — Auth & Platform Hardening | httpOnly cookies, token revocation, server-side quiz grading | Pending |
+| 8 — Recommendations & Immersion | Personalized feed, immersion plans | Pending |
+| 9 — Production | Structured logging, Sentry, Nginx, observability, stats dashboard | Pending |
 
-### Seed sample data (Milestone 2+)
+### Seed sample data
 
 ```bash
+# Static demo catalog (no API keys)
 docker compose exec backend python scripts/seed_content.py
+
+# One-time bulk YouTube fill (API key required)
+docker compose exec backend python scripts/seed_from_youtube.py
+
+# Weekly YouTube refresh
+docker compose exec backend python scripts/weekly_ingest
 ```
 
-This loads 21 items covering all source types (article, podcast, YouTube, music, TV show), all CEFR levels, and multiple languages.
+Bulk seed loads ~240 real videos across 8 languages. `weekly_ingest` adds ~80/week. Podcast and article ingest → Milestone 6.
+
+**Scheduling:** Mac `crontab` is for local dev only. When you deploy, set up cron on the server, a PaaS scheduler, or GitHub Actions — see `CONTENT_INGESTION.md`.
 
 ---
 

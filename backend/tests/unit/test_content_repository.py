@@ -12,40 +12,10 @@ import uuid
 from datetime import UTC, datetime
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
 
-from app.db.base import Base
-from app.models import (
-    content as _content_module,  # noqa: F401 — registers Content with Base.metadata
-)
 from app.models.content import Content
 from app.models.enums import CEFRLevel, SourceType
 from app.repositories.content import ContentRepository
-
-_SQLITE_URL = "sqlite+aiosqlite:///:memory:"
-
-
-@pytest_asyncio.fixture
-async def db_session() -> AsyncSession:
-    engine = create_async_engine(
-        _SQLITE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    session_factory = async_sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
-    async with session_factory() as session:
-        yield session
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
 
 
 def _make_content(
@@ -69,7 +39,7 @@ def _make_content(
     )
 
 
-async def _seed(db_session: AsyncSession, *items: Content) -> None:
+async def _seed(db_session, *items: Content) -> None:
     for item in items:
         db_session.add(item)
     await db_session.commit()
@@ -79,13 +49,18 @@ async def _seed(db_session: AsyncSession, *items: Content) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_returns_all_items_when_no_filters(db_session: AsyncSession) -> None:
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
+async def test_list_returns_all_items_when_no_filters(sqlite_session) -> None:
     await _seed(
-        db_session,
+        sqlite_session,
         _make_content(title="A", url="https://example.com/a"),
         _make_content(title="B", url="https://example.com/b"),
     )
-    repo = ContentRepository(db_session)
+    repo = ContentRepository(sqlite_session)
 
     items, total = await repo.list(
         language=None, cefr_level=None, source_type=None, page=1, page_size=20
@@ -96,13 +71,18 @@ async def test_list_returns_all_items_when_no_filters(db_session: AsyncSession) 
 
 
 @pytest.mark.asyncio
-async def test_list_filters_by_language(db_session: AsyncSession) -> None:
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
+async def test_list_filters_by_language(sqlite_session) -> None:
     await _seed(
-        db_session,
+        sqlite_session,
         _make_content(title="Spanish", url="https://example.com/es", language="es"),
         _make_content(title="French", url="https://example.com/fr", language="fr"),
     )
-    repo = ContentRepository(db_session)
+    repo = ContentRepository(sqlite_session)
 
     items, total = await repo.list(
         language="es", cefr_level=None, source_type=None, page=1, page_size=20
@@ -113,9 +93,14 @@ async def test_list_filters_by_language(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_filters_by_cefr_level(db_session: AsyncSession) -> None:
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
+async def test_list_filters_by_cefr_level(sqlite_session) -> None:
     await _seed(
-        db_session,
+        sqlite_session,
         _make_content(
             title="Easy", url="https://example.com/1", cefr_level=CEFRLevel.A1
         ),
@@ -123,7 +108,7 @@ async def test_list_filters_by_cefr_level(db_session: AsyncSession) -> None:
             title="Hard", url="https://example.com/2", cefr_level=CEFRLevel.C2
         ),
     )
-    repo = ContentRepository(db_session)
+    repo = ContentRepository(sqlite_session)
 
     items, total = await repo.list(
         language=None, cefr_level=CEFRLevel.C2, source_type=None, page=1, page_size=20
@@ -134,9 +119,14 @@ async def test_list_filters_by_cefr_level(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_filters_by_source_type(db_session: AsyncSession) -> None:
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
+async def test_list_filters_by_source_type(sqlite_session) -> None:
     await _seed(
-        db_session,
+        sqlite_session,
         _make_content(
             title="Video", url="https://example.com/v", source_type=SourceType.YOUTUBE
         ),
@@ -144,7 +134,7 @@ async def test_list_filters_by_source_type(db_session: AsyncSession) -> None:
             title="Article", url="https://example.com/a", source_type=SourceType.ARTICLE
         ),
     )
-    repo = ContentRepository(db_session)
+    repo = ContentRepository(sqlite_session)
 
     items, total = await repo.list(
         language=None,
@@ -159,9 +149,14 @@ async def test_list_filters_by_source_type(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_combines_multiple_filters(db_session: AsyncSession) -> None:
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
+async def test_list_combines_multiple_filters(sqlite_session) -> None:
     await _seed(
-        db_session,
+        sqlite_session,
         _make_content(
             title="Match",
             url="https://example.com/match",
@@ -184,7 +179,7 @@ async def test_list_combines_multiple_filters(db_session: AsyncSession) -> None:
             source_type=SourceType.PODCAST,
         ),
     )
-    repo = ContentRepository(db_session)
+    repo = ContentRepository(sqlite_session)
 
     items, total = await repo.list(
         language="es",
@@ -199,17 +194,22 @@ async def test_list_combines_multiple_filters(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
 async def test_list_pagination_returns_correct_page_and_total(
-    db_session: AsyncSession,
+    sqlite_session,
 ) -> None:
     await _seed(
-        db_session,
+        sqlite_session,
         *[
             _make_content(title=f"Item {i}", url=f"https://example.com/{i}")
             for i in range(5)
         ],
     )
-    repo = ContentRepository(db_session)
+    repo = ContentRepository(sqlite_session)
 
     page_1, total = await repo.list(
         language=None, cefr_level=None, source_type=None, page=1, page_size=2
@@ -225,7 +225,6 @@ async def test_list_pagination_returns_correct_page_and_total(
     assert len(page_1) == 2
     assert len(page_2) == 2
     assert len(page_3) == 1
-    # No overlap between pages
     ids = {item.id for item in [*page_1, *page_2, *page_3]}
     assert len(ids) == 5
 
@@ -234,10 +233,15 @@ async def test_list_pagination_returns_correct_page_and_total(
 
 
 @pytest.mark.asyncio
-async def test_get_by_id_returns_item_when_exists(db_session: AsyncSession) -> None:
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
+async def test_get_by_id_returns_item_when_exists(sqlite_session) -> None:
     content = _make_content(title="Findable", url="https://example.com/findable")
-    await _seed(db_session, content)
-    repo = ContentRepository(db_session)
+    await _seed(sqlite_session, content)
+    repo = ContentRepository(sqlite_session)
 
     found = await repo.get_by_id(content.id)
 
@@ -246,8 +250,13 @@ async def test_get_by_id_returns_item_when_exists(db_session: AsyncSession) -> N
 
 
 @pytest.mark.asyncio
-async def test_get_by_id_returns_none_when_missing(db_session: AsyncSession) -> None:
-    repo = ContentRepository(db_session)
+@pytest.mark.parametrize(
+    "sqlite_session",
+    [[Content.__table__]],
+    indirect=True,
+)
+async def test_get_by_id_returns_none_when_missing(sqlite_session) -> None:
+    repo = ContentRepository(sqlite_session)
 
     found = await repo.get_by_id(uuid.uuid4())
 

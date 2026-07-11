@@ -14,6 +14,8 @@ class VocabularyEntryCreate(BaseModel):
 
 
 class VocabularyEntryUpdate(BaseModel):
+    word: str | None = Field(default=None, min_length=1, max_length=200)
+    language: str | None = Field(default=None, min_length=2, max_length=10)
     definition: str | None = Field(default=None, max_length=2000)
     translation: str | None = Field(default=None, max_length=2000)
     notes: str | None = Field(default=None, max_length=2000)

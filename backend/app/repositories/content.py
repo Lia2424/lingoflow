@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -49,6 +50,66 @@ class ContentRepository:
     async def get_by_id(self, content_id: uuid.UUID) -> Content | None:
         result = await self._db.execute(select(Content).where(Content.id == content_id))
         return result.scalar_one_or_none()
+
+    async def get_by_external_id(self, external_id: str) -> Content | None:
+        result = await self._db.execute(
+            select(Content).where(Content.external_id == external_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def upsert_from_external(
+        self,
+        external_id: str,
+        title: str,
+        url: str,
+        source_type: SourceType,
+        language: str,
+        cefr_level: CEFRLevel,
+        thumbnail_url: str | None = None,
+        description: str | None = None,
+        duration_seconds: int | None = None,
+        published_at: datetime | None = None,
+    ) -> tuple[Content, bool]:
+        """Insert or update a content row keyed on external_id.
+
+        Returns (content, created) where `created` is True for new rows.
+        Deduplicates on `external_id`; also guards the `url` unique constraint
+        with a second conflict target so URL-only duplicates are updated too.
+        """
+        stmt = (
+            pg_insert(Content)
+            .values(
+                external_id=external_id,
+                title=title,
+                url=url,
+                source_type=source_type,
+                language=language,
+                cefr_level=cefr_level,
+                thumbnail_url=thumbnail_url,
+                description=description,
+                duration_seconds=duration_seconds,
+                published_at=published_at,
+            )
+            .on_conflict_do_update(
+                index_elements=["external_id"],
+                set_={
+                    "title": title,
+                    "thumbnail_url": thumbnail_url,
+                    "description": description,
+                    "duration_seconds": duration_seconds,
+                    "updated_at": func.now(),
+                },
+            )
+            .returning(Content.id, Content.created_at, Content.updated_at)
+        )
+        result = await self._db.execute(stmt)
+        await self._db.commit()
+        row = result.one()
+        created = row.created_at == row.updated_at
+
+        content = await self.get_by_id(row.id)
+        assert content is not None
+        return content, created
 
     async def upsert_interaction(
         self,

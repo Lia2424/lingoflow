@@ -1,4 +1,6 @@
-from pydantic import field_validator
+from typing import Self
+
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,9 +37,26 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must be at least 32 characters")
         return v
 
-    # OpenAI
+    # OpenAI-compatible AI backend
+    # Leave OPENAI_BASE_URL empty to use OpenAI.
+    # Set to https://api.groq.com/openai/v1 for Groq (free tier).
+    OPENAI_BASE_URL: str = ""
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
+
+    @model_validator(mode="after")
+    def default_groq_model(self) -> Self:
+        """Use a Groq model when the base URL points at Groq and model is default."""
+        if "groq.com" in self.OPENAI_BASE_URL and self.OPENAI_MODEL == "gpt-4o-mini":
+            self.OPENAI_MODEL = "llama-3.1-8b-instant"
+        return self
+
+    # Content ingestion — external API keys
+    YOUTUBE_API_KEY: str = ""
+
+    # Admin endpoints — protect with a static pre-shared key
+    # Generate with: openssl rand -hex 32
+    ADMIN_API_KEY: str = ""
 
 
 settings = Settings()  # type: ignore[call-arg]
