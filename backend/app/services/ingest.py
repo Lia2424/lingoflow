@@ -1,6 +1,7 @@
-"""Content ingestion service — YouTube only (Milestone 5).
+"""Content ingestion service.
 
-Podcast and article ingestion deferred to Milestone 6.
+YouTube (M5) and podcast via iTunes/RSS (M6 Option B).
+Article ingestion deferred to a later M6 task.
 """
 
 from __future__ import annotations
@@ -8,15 +9,21 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TypeAlias
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.integrations import ai as ai_integration
+from app.integrations import podcast_itunes as podcast_integration
 from app.integrations import youtube as youtube_integration
 from app.models.enums import CEFRLevel
 from app.repositories.content import ContentRepository
 
 logger = logging.getLogger(__name__)
+
+IngestItem: TypeAlias = (
+    youtube_integration.YouTubeVideoItem | podcast_integration.PodcastEpisodeItem
+)
 
 
 @dataclass
@@ -41,9 +48,20 @@ async def ingest_youtube(
     return await _upsert_items(db, items, "youtube", language, query)
 
 
+async def ingest_podcasts(
+    db: AsyncSession,
+    language: str,
+    query: str,
+    limit: int = 20,
+) -> IngestResult:
+    """Fetch podcast episodes via iTunes + RSS and upsert into the content table."""
+    items = await podcast_integration.search_episodes(language, query, limit)
+    return await _upsert_items(db, items, "podcast", language, query)
+
+
 async def _upsert_items(
     db: AsyncSession,
-    items: Sequence[youtube_integration.YouTubeVideoItem],
+    items: Sequence[IngestItem],
     source_type_label: str,
     language: str,
     query: str,

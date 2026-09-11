@@ -1,4 +1,4 @@
-"""Curated YouTube ingest queries shared by weekly and bulk seed scripts.
+"""Curated ingest queries shared by weekly and bulk seed scripts.
 
 Each entry is (language, query, limit).
 """
@@ -35,4 +35,17 @@ BULK_YOUTUBE_QUERIES: list[tuple[str, str, int]] = [
     ("pt", "português avançado nativo", 10),
     ("zh", "学中文 初学者", 15),
     ("zh", "高级汉语 母语", 10),
+]
+
+# Curated iTunes podcast show names — one learner-friendly show per language.
+# ``query`` is passed to the Apple iTunes Search API (no API key).
+BULK_PODCAST_SHOWS: list[tuple[str, str, int]] = [
+    ("es", "News in Slow Spanish", 10),
+    ("fr", "News in Slow French", 10),
+    ("de", "Slow German", 10),
+    ("it", "News in Slow Italian", 10),
+    ("ja", "Nihongo con Teppei", 10),
+    ("ko", "Talk To Me In Korean", 10),
+    ("pt", "Portuguese With Carla", 10),
+    ("zh", "ChinesePod", 10),
 ]
