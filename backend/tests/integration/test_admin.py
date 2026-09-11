@@ -104,6 +104,45 @@ async def test_ingest_youtube_returns_result_with_valid_key(
 
 
 @pytest.mark.asyncio
+async def test_ingest_podcast_returns_result_with_valid_key(
+    client: AsyncClient,
+) -> None:
+    mock_result = IngestResult(
+        source_type="podcast",
+        language="es",
+        query="News in Slow Spanish",
+        total_fetched=10,
+        created=8,
+        updated=2,
+        errors=0,
+    )
+    with (
+        patch("app.api.routes.admin.settings") as s,
+        patch(
+            "app.api.routes.admin.ingest_service.ingest_podcasts",
+            new=AsyncMock(return_value=mock_result),
+        ),
+    ):
+        s.ADMIN_API_KEY = "secret-admin-key"
+        r = await client.post(
+            "/api/admin/ingest",
+            json={
+                "source_type": "podcast",
+                "language": "es",
+                "query": "News in Slow Spanish",
+                "limit": 10,
+            },
+            headers={"X-Admin-Key": "secret-admin-key"},
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source_type"] == "podcast"
+    assert body["total_fetched"] == 10
+    assert body["created"] == 8
+
+
+@pytest.mark.asyncio
 async def test_ingest_returns_503_when_service_raises_runtime_error(
     client: AsyncClient,
 ) -> None:

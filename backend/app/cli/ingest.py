@@ -1,7 +1,10 @@
-"""CLI entry-point for YouTube content ingestion.
+"""CLI entry-point for content ingestion.
 
 Usage:
-    python -m app.cli.ingest --language es --query "learn spanish" --limit 50
+    python -m app.cli.ingest --source youtube --language es \\
+        --query "learn spanish" --limit 50
+    python -m app.cli.ingest --source podcast --language es \\
+        --query "News in Slow Spanish" --limit 10
 
 The script creates its own database session and tears it down cleanly, so it
 can be run as a cron job or management command without a running server.
@@ -18,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 
-async def _run(language: str, query: str, limit: int) -> None:
+async def _run(source: str, language: str, query: str, limit: int) -> None:
     from sqlalchemy.ext.asyncio import (
         AsyncSession,
         async_sessionmaker,
@@ -35,12 +38,19 @@ async def _run(language: str, query: str, limit: int) -> None:
 
     async with session_factory() as db:
         logger.info(
-            "Starting youtube ingest | language=%s | query=%r | limit=%d",
+            "Starting %s ingest | language=%s | query=%r | limit=%d",
+            source,
             language,
             query,
             limit,
         )
-        result = await ingest_service.ingest_youtube(db, language, query, limit)
+        if source == "youtube":
+            result = await ingest_service.ingest_youtube(db, language, query, limit)
+        elif source == "podcast":
+            result = await ingest_service.ingest_podcasts(db, language, query, limit)
+        else:
+            logger.error("Unknown source type: %s", source)
+            sys.exit(1)
 
     await engine.dispose()
 
@@ -57,7 +67,13 @@ async def _run(language: str, query: str, limit: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Ingest YouTube videos into LingoFlow."
+        description="Ingest content from external sources into LingoFlow."
+    )
+    parser.add_argument(
+        "--source",
+        required=True,
+        choices=["youtube", "podcast"],
+        help="Content source to ingest from.",
     )
     parser.add_argument(
         "--language",
@@ -67,17 +83,17 @@ def main() -> None:
     parser.add_argument(
         "--query",
         required=True,
-        help="YouTube search query.",
+        help="YouTube search query or iTunes podcast show name.",
     )
     parser.add_argument(
         "--limit",
         type=int,
         default=20,
-        help="Maximum videos to fetch (default: 20, max: 50).",
+        help="Maximum items to fetch (default: 20, max: 50).",
     )
     args = parser.parse_args()
 
-    asyncio.run(_run(args.language, args.query, min(args.limit, 50)))
+    asyncio.run(_run(args.source, args.language, args.query, min(args.limit, 50)))
 
 
 if __name__ == "__main__":

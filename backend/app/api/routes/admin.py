@@ -23,7 +23,7 @@ from app.services import ingest as ingest_service
 
 router = APIRouter()
 
-_SOURCE_TYPES = Literal["youtube"]
+_SOURCE_TYPES = Literal["youtube", "podcast"]
 
 
 def _require_admin_key(x_admin_key: Annotated[str | None, Header()] = None) -> None:
@@ -42,7 +42,7 @@ def _require_admin_key(x_admin_key: Annotated[str | None, Header()] = None) -> N
 
 class IngestRequest(BaseModel):
     source_type: _SOURCE_TYPES = Field(
-        description="Content source to ingest from: youtube"
+        description="Content source to ingest from: youtube | podcast"
     )
     language: str = Field(
         min_length=2,
@@ -52,13 +52,13 @@ class IngestRequest(BaseModel):
     query: str = Field(
         min_length=1,
         max_length=500,
-        description="YouTube search query.",
+        description="YouTube search query or iTunes podcast show name.",
     )
     limit: int = Field(
         default=20,
         ge=1,
         le=50,
-        description="Maximum videos to fetch.",
+        description="Maximum items to fetch.",
     )
 
 
@@ -76,7 +76,7 @@ class IngestResponse(BaseModel):
     "/ingest",
     response_model=IngestResponse,
     status_code=status.HTTP_200_OK,
-    summary="Trigger a manual YouTube content ingestion run",
+    summary="Trigger a manual content ingestion run",
     responses={
         401: {"description": "Invalid or missing X-Admin-Key"},
         503: {"description": "Admin endpoints not configured"},
@@ -89,13 +89,18 @@ async def trigger_ingest(
     db: DatabaseDep,
     x_admin_key: Annotated[str | None, Header()] = None,
 ) -> IngestResponse:
-    """Seed the content table from YouTube Data API v3."""
+    """Seed the content table from YouTube or iTunes/RSS podcasts."""
     _require_admin_key(x_admin_key)
 
     try:
-        result = await ingest_service.ingest_youtube(
-            db, body.language, body.query, body.limit
-        )
+        if body.source_type == "youtube":
+            result = await ingest_service.ingest_youtube(
+                db, body.language, body.query, body.limit
+            )
+        else:
+            result = await ingest_service.ingest_podcasts(
+                db, body.language, body.query, body.limit
+            )
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -7,10 +7,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.integrations.podcast_itunes import PodcastEpisodeItem
 from app.integrations.youtube import YouTubeVideoItem
 from app.models.enums import CEFRLevel, SourceType
 from app.services.ingest import (
     _classify_or_default,
+    ingest_podcasts,
     ingest_youtube,
 )
 
@@ -27,6 +29,21 @@ def _youtube_item() -> YouTubeVideoItem:
         description="A lesson",
         duration_seconds=300,
         published_at=datetime(2024, 1, 1, tzinfo=UTC),
+    )
+
+
+def _podcast_item() -> PodcastEpisodeItem:
+    return PodcastEpisodeItem(
+        external_id="podcast:ep-1",
+        title="News in Slow Spanish",
+        url="https://example.com/ep1.mp3",
+        source_type=SourceType.PODCAST,
+        language="es",
+        cefr_level=CEFRLevel.A1,
+        thumbnail_url=None,
+        description="Episode 1",
+        duration_seconds=600,
+        published_at=datetime(2024, 2, 1, tzinfo=UTC),
     )
 
 
@@ -111,6 +128,32 @@ async def test_ingest_youtube_counts_errors() -> None:
 
         result = await ingest_youtube(db, "es", "learn spanish", limit=1)
 
+    assert result.errors == 1
+
+
+@pytest.mark.asyncio
+async def test_ingest_podcasts_counts_errors() -> None:
+    db = MagicMock()
+
+    with (
+        patch(
+            "app.services.ingest.podcast_integration.search_episodes",
+            new=AsyncMock(return_value=[_podcast_item()]),
+        ),
+        patch(
+            "app.services.ingest.ai_integration.classify_cefr",
+            new=AsyncMock(return_value=CEFRLevel.A1),
+        ),
+        patch("app.services.ingest.ContentRepository") as repo_cls,
+    ):
+        repo = repo_cls.return_value
+        repo.get_by_external_id = AsyncMock(return_value=None)
+        repo.upsert_from_external = AsyncMock(side_effect=RuntimeError("db down"))
+
+        result = await ingest_podcasts(db, "es", "News in Slow Spanish", limit=1)
+
+    assert result.source_type == "podcast"
+    assert result.total_fetched == 1
     assert result.errors == 1
 
 
